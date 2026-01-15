@@ -1,25 +1,2693 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Description" content="Personal Relationship CRM - Stay connected with people who matter">
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    body {background-color: #f7f9fa}
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 10.5px '.SF NS'; color: #585e6d; -webkit-text-stroke: #585e6d}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #0e121d; -webkit-text-stroke: #0e121d; min-height: 15.0px}
-    span.s1 {font-kerning: none; background-color: rgba(255, 255, 255, 0.98)}
-    span.s2 {font-kerning: none}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Personal Relationship CRM - Stay connected with people who matter">
+  <title>Relationship CRM</title>
+
+  <style>
+    /* ===== CSS RESET & BASE STYLES ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: var(--color-text-primary);
+      background-color: var(--color-background);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      /* Colors - Status */
+      --color-recent: #059669;
+      --color-caution: #F59E0B;
+      --color-warning: #EA580C;
+      --color-overdue: #DC2626;
+      --color-never: #6B7280;
+
+      /* Colors - UI */
+      --color-primary: #2563EB;
+      --color-primary-light: #3B82F6;
+      --color-primary-dark: #1D4ED8;
+      --color-secondary: #7C3AED;
+      --color-accent: #0891B2;
+      --color-background: #F9FAFB;
+      --color-surface: #FFFFFF;
+      --color-surface-elevated: #FFFFFF;
+      --color-text-primary: #111827;
+      --color-text-secondary: #6B7280;
+      --color-border: #E5E7EB;
+      --color-border-light: #F3F4F6;
+      --color-danger: #DC2626;
+      --color-success: #059669;
+
+      /* Spacing */
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 0.75rem;
+      --spacing-md: 1rem;
+      --spacing-lg: 1.5rem;
+      --spacing-xl: 2rem;
+
+      /* Sizes */
+      --tap-target-min: 48px;
+      --border-radius: 0.75rem;
+      --border-radius-lg: 1rem;
+      --nav-height: 70px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ===== LAYOUT ===== */
+    #app {
+      max-width: 768px;
+      margin: 0 auto;
+      padding-top: var(--nav-height);
+      min-height: 100vh;
+    }
+
+    .view {
+      padding: var(--spacing-md);
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== COMPONENTS ===== */
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      min-height: var(--tap-target-min);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn:hover, .btn:active {
+      background: linear-gradient(135deg, var(--color-primary-dark) 0%, #1E40AF 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      border: 1.5px solid var(--color-border);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-background);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    }
+
+    .btn-block {
+      width: 100%;
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--color-surface);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      transition: all 0.2s;
+    }
+
+    .card-clickable {
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-clickable:hover, .card-clickable:active {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--color-primary);
+      background: linear-gradient(to bottom, #FFFFFF, #FAFBFC);
+    }
+
+    /* Status indicators */
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: var(--spacing-xs);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(0, 0, 0, 0.15);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .status-recent {
+      background: var(--color-recent);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(5, 150, 105, 0.3), 0 0 8px rgba(5, 150, 105, 0.2);
+    }
+    .status-caution {
+      background: var(--color-caution);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(245, 158, 11, 0.3), 0 0 8px rgba(245, 158, 11, 0.2);
+    }
+    .status-warning {
+      background: var(--color-warning);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(234, 88, 12, 0.3), 0 0 8px rgba(234, 88, 12, 0.2);
+    }
+    .status-overdue {
+      background: var(--color-overdue);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(220, 38, 38, 0.3), 0 0 8px rgba(220, 38, 38, 0.2);
+    }
+    .status-never {
+      background: var(--color-never);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(107, 114, 128, 0.3);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: var(--spacing-xs);
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      min-height: var(--tap-target-min);
+      padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
+      border-radius: var(--border-radius);
+      font-size: 0.9375rem;
+      font-family: inherit;
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      transition: all 0.25s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .form-input:hover, .form-select:hover, .form-textarea:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1.25rem;
+      padding-right: 2.5rem;
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Icon styles */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.625rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .icon-phone { background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); color: #1E40AF; }
+    .icon-email { background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; }
+    .icon-linkedin { background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); color: #3730A3; }
+    .icon-birthday { background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%); color: #9F1239; }
+    .icon-notes { background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%); color: #6B21A8; }
+    .icon-call { background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); color: #1E40AF; }
+    .icon-text { background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); color: #065F46; }
+    .icon-inperson { background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; }
+    .icon-video { background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); color: #3730A3; }
+    .icon-social { background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%); color: #9F1239; }
+
+    /* Header */
+    .view-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--spacing-xl);
+      padding-bottom: var(--spacing-lg);
+      border-bottom: 2px solid var(--color-border-light);
+      position: relative;
+    }
+
+    .view-title {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.025em;
+      text-align: center;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      padding: 0.25rem 0;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      color: var(--color-text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    /* Top Navigation */
+    #top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: var(--color-surface);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.98);
+    }
+
+    .nav-container {
+      max-width: 768px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 100%;
+    }
+
+    .nav-button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    .nav-button .nav-label {
+      transition: all 0.25s;
+    }
+
+    .nav-button:hover {
+      color: var(--color-text-primary);
+      background: rgba(37, 99, 235, 0.04);
+    }
+
+    .nav-button.active {
+      color: var(--color-primary);
+      font-weight: 600;
+      background: rgba(37, 99, 235, 0.06);
+    }
+
+    .nav-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      right: 10%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
+      border-radius: 3px 3px 0 0;
+      box-shadow: 0 -2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-md);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--color-surface);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-lg);
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Toast notifications */
+    #toast-container {
+      position: fixed;
+      top: var(--spacing-md);
+      right: var(--spacing-md);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .toast {
+      background: var(--color-text-primary);
+      color: white;
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      min-width: 250px;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .toast-success {
+      background: var(--color-recent);
+    }
+
+    .toast-error {
+      background: var(--color-danger);
+    }
+
+    /* Interaction type buttons */
+    .interaction-types {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .interaction-type-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      min-height: 80px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--border-radius);
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .interaction-type-btn:hover {
+      border-color: var(--color-primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .interaction-type-btn.selected {
+      border-color: var(--color-primary);
+      background: rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .interaction-type-btn .icon {
+      font-size: 2rem;
+    }
+
+    .interaction-type-btn .label {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    /* Quick date buttons */
+    .quick-dates {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .quick-date-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      background: var(--color-surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .quick-date-btn:hover, .quick-date-btn.selected {
+      border-color: var(--color-primary);
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--color-primary);
+    }
+
+    /* Filter chips for multi-select */
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 0.875rem;
+      border: 1.5px solid var(--color-border);
+      border-radius: 2rem;
+      background: var(--color-surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .filter-chip:hover {
+      border-color: var(--color-primary);
+      background: rgba(37, 99, 235, 0.05);
+    }
+
+    .filter-chip.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    /* Utilities */
+    .text-center { text-align: center; }
+    .text-muted { color: var(--color-text-secondary); }
+    .text-small { font-size: 0.875rem; }
+    .mb-0 { margin-bottom: 0; }
+    .mb-sm { margin-bottom: var(--spacing-sm); }
+    .mb-md { margin-bottom: var(--spacing-md); }
+    .mb-lg { margin-bottom: var(--spacing-lg); }
+    .mt-md { margin-top: var(--spacing-md); }
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--color-text-secondary);
+    }
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (min-width: 768px) {
+      #app {
+        padding-bottom: 0;
+      }
+      #bottom-nav {
+        max-width: 768px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1">Dashboard</span></p>
-<p class="p1"><span class="s1">Contacts</span></p>
-<p class="p1"><span class="s1">Activity</span></p>
-<p class="p1"><span class="s1">+ Contact</span></p>
-<p class="p2"><span class="s2"></span><br></p>
+  <!-- Top navigation -->
+  <nav id="top-nav">
+    <div class="nav-container">
+      <button class="nav-button" data-route="dashboard">
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-button" data-route="contacts">
+        <span class="nav-label">Contacts</span>
+      </button>
+      <button class="nav-button" data-route="activity">
+        <span class="nav-label">Activity</span>
+      </button>
+      <button class="nav-button" data-route="add-contact">
+        <span class="nav-label">Add Contact</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- App container -->
+  <div id="app"></div>
+
+  <!-- Toast notifications container -->
+  <div id="toast-container"></div>
+
+  <!-- Interaction Modal -->
+  <div id="interaction-modal" class="modal-overlay" onclick="if(event.target === this) closeInteractionModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Log Interaction</h2>
+        <button class="modal-close" onclick="closeInteractionModal()">×</button>
+      </div>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    /* ===== STATE & DATA MODEL ===== */
+
+    const AppState = {
+      contacts: [],
+      interactions: [],
+      currentView: 'dashboard',
+      selectedContactId: null
+    };
+
+    /* ===== UTILITY FUNCTIONS ===== */
+
+    // Generate UUID v4
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // Date formatting
+    function formatDate(date) {
+      const d = new Date(date);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function formatRelativeDate(date) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const then = new Date(date);
+      then.setHours(0, 0, 0, 0);
+      const diffTime = then - now;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // Future dates
+      if (diffDays > 0) {
+        if (diffDays === 1) return 'Tomorrow';
+        if (diffDays < 7) return `In ${diffDays} days`;
+        if (diffDays < 30) return `In ${Math.floor(diffDays / 7)} weeks`;
+        if (diffDays < 365) return `In ${Math.floor(diffDays / 30)} months`;
+        return `In ${Math.floor(diffDays / 365)} years`;
+      }
+
+      // Past dates
+      const daysAgo = Math.abs(diffDays);
+      if (daysAgo === 0) return 'Today';
+      if (daysAgo === 1) return 'Yesterday';
+      if (daysAgo < 7) return `${daysAgo} days ago`;
+      if (daysAgo < 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
+      if (daysAgo < 365) return `${Math.floor(daysAgo / 30)} months ago`;
+      return `${Math.floor(daysAgo / 365)} years ago`;
+    }
+
+    function isFutureDate(date) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const then = new Date(date);
+      then.setHours(0, 0, 0, 0);
+      return then > now;
+    }
+
+    // Validation
+    function validateEmail(email) {
+      if (!email) return true; // Optional field
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function validatePhone(phone) {
+      if (!phone) return true; // Optional field
+      // Strip all non-digits and check for exactly 10 digits
+      const digits = phone.replace(/\D/g, '');
+      return digits.length === 10;
+    }
+
+    function formatPhoneNumber(value) {
+      // Strip all non-digits
+      const digits = value.replace(/\D/g, '');
+
+      // Format as (###) ###-####
+      if (digits.length === 0) return '';
+      if (digits.length <= 3) return `(${digits}`;
+      if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    /* ===== LOCAL STORAGE FUNCTIONS ===== */
+
+    const STORAGE_KEYS = {
+      contacts: 'crm_contacts',
+      interactions: 'crm_interactions',
+      version: 'crm_version'
+    };
+
+    function loadState() {
+      try {
+        const contactsData = localStorage.getItem(STORAGE_KEYS.contacts);
+        const interactionsData = localStorage.getItem(STORAGE_KEYS.interactions);
+
+        if (contactsData) AppState.contacts = JSON.parse(contactsData);
+        if (interactionsData) AppState.interactions = JSON.parse(interactionsData);
+      } catch (error) {
+        console.error('Error loading data from localStorage:', error);
+        showToast('Error loading data', 'error');
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEYS.contacts, JSON.stringify(AppState.contacts));
+        localStorage.setItem(STORAGE_KEYS.interactions, JSON.stringify(AppState.interactions));
+        localStorage.setItem(STORAGE_KEYS.version, '1.0');
+      } catch (error) {
+        console.error('Error saving data to localStorage:', error);
+        if (error.name === 'QuotaExceededError') {
+          showToast('Storage full! Please export your data.', 'error');
+        } else {
+          showToast('Error saving data', 'error');
+        }
+      }
+    }
+
+    /* ===== DATA ACCESS LAYER - CONTACTS ===== */
+
+    function getContacts() {
+      return AppState.contacts;
+    }
+
+    function getContact(id) {
+      return AppState.contacts.find(c => c.id === id);
+    }
+
+    function addContact(contactData) {
+      const contact = {
+        id: generateUUID(),
+        // New format: firstName and lastName
+        firstName: contactData.firstName || '',
+        lastName: contactData.lastName || '',
+        // Keep old name field for backwards compatibility
+        name: contactData.name || `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim(),
+        relationshipType: contactData.relationshipType,
+        howWeMet: contactData.howWeMet || '',
+        phone: contactData.phone || '',
+        email: contactData.email || '',
+        linkedin: contactData.linkedin || '',
+        industry: contactData.industry || '',
+        birthdayMonth: contactData.birthdayMonth || '',
+        birthdayDay: contactData.birthdayDay || '',
+        // Keep old birthday field for backwards compatibility
+        birthday: contactData.birthday || '',
+        priority: contactData.priority || false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        lastContactedAt: null
+      };
+
+      AppState.contacts.push(contact);
+      saveState();
+      return contact;
+    }
+
+    // Helper function to get full name
+    function getFullName(contact) {
+      if (contact.firstName || contact.lastName) {
+        return `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
+      }
+      return contact.name || '';
+    }
+
+    // Helper function to get contact initials
+    function getContactInitials(contact) {
+      if (contact.firstName || contact.lastName) {
+        const first = (contact.firstName || '').trim()[0] || '';
+        const last = (contact.lastName || '').trim()[0] || '';
+        return `${first}${last}`.toUpperCase();
+      }
+      // Fall back to name field
+      const nameParts = (contact.name || '').trim().split(' ');
+      if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+      }
+      return (contact.name || '?')[0].toUpperCase();
+    }
+
+    function updateContact(id, updates) {
+      const index = AppState.contacts.findIndex(c => c.id === id);
+      if (index === -1) return null;
+
+      AppState.contacts[index] = {
+        ...AppState.contacts[index],
+        ...updates,
+        updatedAt: Date.now()
+      };
+
+      saveState();
+      return AppState.contacts[index];
+    }
+
+    function toggleContactPriority(id) {
+      const contact = getContact(id);
+      if (!contact) return;
+      updateContact(id, { priority: !contact.priority });
+      showToast(contact.priority ? 'Removed from Contact ASAP' : 'Added to Contact ASAP', 'success');
+      renderCurrentView();
+    }
+
+    function deleteContact(id) {
+      // Also delete all interactions for this contact
+      AppState.interactions = AppState.interactions.filter(i => i.contactId !== id);
+      AppState.contacts = AppState.contacts.filter(c => c.id !== id);
+      saveState();
+      return true;
+    }
+
+    /* ===== DATA ACCESS LAYER - INTERACTIONS ===== */
+
+    function getInteractions() {
+      return AppState.interactions;
+    }
+
+    function getInteractionsByContact(contactId) {
+      return AppState.interactions
+        .filter(i => i.contactId === contactId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    function addInteraction(interactionData) {
+      const interaction = {
+        id: generateUUID(),
+        contactId: interactionData.contactId,
+        date: interactionData.date,
+        type: interactionData.type,
+        notes: interactionData.notes || '',
+        createdAt: Date.now()
+      };
+
+      AppState.interactions.push(interaction);
+      updateContactLastInteraction(interaction.contactId);
+      saveState();
+      return interaction;
+    }
+
+    function updateInteraction(id, updates) {
+      const index = AppState.interactions.findIndex(i => i.id === id);
+      if (index === -1) return null;
+
+      const interaction = AppState.interactions[index];
+      AppState.interactions[index] = {
+        ...interaction,
+        ...updates
+      };
+
+      updateContactLastInteraction(interaction.contactId);
+      saveState();
+      return AppState.interactions[index];
+    }
+
+    function deleteInteraction(id) {
+      const interaction = AppState.interactions.find(i => i.id === id);
+      if (!interaction) return false;
+
+      AppState.interactions = AppState.interactions.filter(i => i.id !== id);
+      updateContactLastInteraction(interaction.contactId);
+      saveState();
+      return true;
+    }
+
+    function updateContactLastInteraction(contactId) {
+      const interactions = getInteractionsByContact(contactId);
+
+      if (interactions.length === 0) {
+        updateContact(contactId, { lastContactedAt: null });
+        return;
+      }
+
+      const mostRecent = interactions.reduce((latest, current) => {
+        const currentDate = new Date(current.date);
+        return currentDate > latest ? currentDate : latest;
+      }, new Date(0));
+
+      updateContact(contactId, { lastContactedAt: mostRecent.getTime() });
+    }
+
+    /* ===== CALCULATION FUNCTIONS ===== */
+
+    function getDaysSinceLastContact(contactId) {
+      const contact = getContact(contactId);
+      if (!contact || !contact.lastContactedAt) return null;
+
+      const now = new Date();
+      const lastContact = new Date(contact.lastContactedAt);
+      const diffTime = Math.abs(now - lastContact);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      return diffDays;
+    }
+
+    function getContactStatus(contactId) {
+      const days = getDaysSinceLastContact(contactId);
+
+      if (days === null) return 'never';
+      if (days < 14) return 'recent';
+      if (days < 30) return 'caution';
+      if (days < 60) return 'warning';
+      return 'overdue';
+    }
+
+    function getUpcomingBirthdays(days = 30) {
+      const today = new Date();
+      const upcoming = [];
+
+      const monthMap = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5,
+        'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11
+      };
+
+      AppState.contacts.forEach(contact => {
+        let nextBirthday, monthNum, dayNum;
+
+        // Handle new format (birthdayMonth and birthdayDay)
+        if (contact.birthdayMonth && contact.birthdayDay) {
+          monthNum = monthMap[contact.birthdayMonth];
+          dayNum = parseInt(contact.birthdayDay);
+        }
+        // Handle old format (birthday as YYYY-MM-DD)
+        else if (contact.birthday) {
+          const [year, month, day] = contact.birthday.split('-').map(Number);
+          monthNum = month - 1;
+          dayNum = day;
+        } else {
+          return; // No birthday information
+        }
+
+        const currentYear = today.getFullYear();
+        nextBirthday = new Date(currentYear, monthNum, dayNum);
+
+        if (nextBirthday < today) {
+          nextBirthday = new Date(currentYear + 1, monthNum, dayNum);
+        }
+
+        const daysUntil = Math.floor((nextBirthday - today) / (1000 * 60 * 60 * 24));
+
+        if (daysUntil <= days && daysUntil >= 0) {
+          upcoming.push({ contact, date: nextBirthday, daysUntil });
+        }
+      });
+
+      return upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+    }
+
+    function getNeedsAttention() {
+      return AppState.contacts
+        .filter(c => {
+          const days = getDaysSinceLastContact(c.id);
+          return days === null || days >= 14;
+        })
+        .sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) || 9999;
+          const daysB = getDaysSinceLastContact(b.id) || 9999;
+          return daysB - daysA;
+        });
+    }
+
+    /* ===== ROUTER & NAVIGATION ===== */
+
+    const Routes = {
+      'dashboard': renderDashboard,
+      'contacts': renderContactList,
+      'activity': renderActivity,
+      'add-contact': renderContactForm,
+      'contact': renderContactDetail,
+      'edit-contact': renderContactForm
+    };
+
+    function navigateTo(route, params = {}) {
+      AppState.currentView = route;
+      AppState.selectedContactId = params.id || null;
+
+      if (params.id) {
+        window.location.hash = `${route}/${params.id}`;
+      } else {
+        window.location.hash = route;
+      }
+
+      renderCurrentView();
+      updateNavigation();
+    }
+
+    function handleHashChange() {
+      const hash = window.location.hash.slice(1) || 'dashboard';
+      const [route, id] = hash.split('/');
+
+      AppState.currentView = route;
+      AppState.selectedContactId = id || null;
+
+      renderCurrentView();
+      updateNavigation();
+    }
+
+    function renderCurrentView() {
+      const route = AppState.currentView;
+      const renderer = Routes[route];
+
+      if (renderer) {
+        renderer();
+      } else {
+        navigateTo('dashboard');
+      }
+    }
+
+    function updateNavigation() {
+      const navButtons = document.querySelectorAll('.nav-button');
+      navButtons.forEach(btn => {
+        const route = btn.getAttribute('data-route');
+        if (route === AppState.currentView) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    /* ===== VIEW RENDERERS ===== */
+
+    function renderDashboard() {
+      const app = document.getElementById('app');
+
+      const totalContacts = AppState.contacts.length;
+      const totalInteractions = AppState.interactions.length;
+      const priorityContacts = AppState.contacts.filter(c => c.priority);
+      const needsAttention = getNeedsAttention();
+      const upcomingBirthdays = getUpcomingBirthdays(30);
+
+      // Calculate L7D (last 7 days) interactions
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const l7dInteractions = AppState.interactions.filter(i => {
+        const interactionDate = new Date(i.date);
+        return interactionDate >= sevenDaysAgo && !isFutureDate(i.date);
+      }).length;
+
+      // Split interactions into past (recent) and future (upcoming)
+      const today = new Date().toISOString().split('T')[0];
+      const recentInteractions = AppState.interactions
+        .filter(i => i.date <= today)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+      const upcomingInteractions = AppState.interactions
+        .filter(i => i.date > today)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 5);
+
+      if (totalContacts === 0) {
+        app.innerHTML = `
+          <div class="view">
+            <div class="view-header">
+              <h1 class="view-title">Dashboard</h1>
+            </div>
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">Welcome!</div>
+              <h2>Welcome to Relationship CRM</h2>
+              <p class="text-muted">Start by adding your first contact to track your relationships.</p>
+              <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Your First Contact</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      app.innerHTML = `
+        <div class="view">
+          <div class="view-header">
+            <h1 class="view-title">Dashboard</h1>
+          </div>
+
+          <!-- Stats and Upcoming Birthdays Row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: var(--spacing-lg);">
+            <!-- Quick Stats Card -->
+            <div class="card" style="margin-bottom: 0;">
+              <h2 class="mb-md" style="font-size: 1.1rem;">Quick Stats</h2>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                <div>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
+                  <div class="text-muted text-small">Contacts</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</div>
+                  <div class="text-muted text-small">Interactions</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-success);">${l7dInteractions}</div>
+                  <div class="text-muted text-small">L7D</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upcoming Birthdays Card -->
+            <div class="card" style="margin-bottom: 0;">
+              <h2 class="mb-md" style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">🎂</span>
+                <span style="font-size: 1rem;">Upcoming Birthdays</span>
+              </h2>
+              ${(() => {
+                const nextBirthdays = getUpcomingBirthdays(365).slice(0, 5);
+                if (nextBirthdays.length === 0) {
+                  return '<p class="text-muted text-small">No birthdays on file</p>';
+                }
+                return `
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${nextBirthdays.map(({ contact, daysUntil }) => {
+                      const dayText = daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil}d`;
+                      const birthdayText = contact.birthdayMonth && contact.birthdayDay ? `${contact.birthdayMonth.slice(0, 3)} ${contact.birthdayDay}` : '';
+                      const isUrgent = daysUntil <= 7;
+                      return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                          <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 500; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">${birthdayText}</div>
+                          </div>
+                          <div style="font-size: 0.75rem; font-weight: 600; color: ${isUrgent ? 'var(--color-danger)' : 'var(--color-primary)'}; white-space: nowrap; margin-left: 0.5rem;">
+                            ${dayText}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `;
+              })()}
+            </div>
+          </div>
+
+          <!-- Priority Contacts -->
+          ${priorityContacts.length > 0 ? `
+            <div class="card mb-lg" style="border-left: 3px solid var(--color-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);">
+              <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: white; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">PRIORITY</span>
+                <span>Contact ASAP (${priorityContacts.length})</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${priorityContacts.map(contact => {
+                  const days = getDaysSinceLastContact(contact.id);
+                  const status = getContactStatus(contact.id);
+                  const statusText = days === null ? 'Never contacted' : `${days} days ago`;
+                  return `
+                    <div class="card card-clickable" style="padding: 0.75rem; margin: 0; border-left: 3px solid var(--color-${status});" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                          <div style="font-weight: 600;">${escapeHtml(getFullName(contact))}</div>
+                          <div class="text-muted text-small">${contact.relationshipType}</div>
+                        </div>
+                        <div class="text-small" style="color: var(--color-${status}); font-weight: 600;">
+                          ${statusText}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Needs Attention -->
+          ${needsAttention.length > 0 ? `
+            <div class="card mb-lg" style="border-left: 3px solid var(--color-warning);">
+              <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #FEF3C7; color: #92400E; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">ATTENTION</span>
+                <span>Needs Attention (${needsAttention.length})</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${needsAttention.slice(0, 5).map(contact => {
+                  const days = getDaysSinceLastContact(contact.id);
+                  const status = getContactStatus(contact.id);
+                  const statusText = days === null ? 'Never contacted' : `${days} days ago`;
+                  return `
+                    <div class="card card-clickable" style="padding: 0.75rem; margin: 0; border-left: 3px solid var(--color-${status});" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                          <div style="font-weight: 600;">${escapeHtml(getFullName(contact))}</div>
+                          <div class="text-muted text-small">${contact.relationshipType}</div>
+                        </div>
+                        <div class="text-small" style="color: var(--color-${status}); font-weight: 600;">
+                          ${statusText}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              ${needsAttention.length > 5 ? `
+                <button class="btn btn-secondary btn-block mt-md" onclick="navigateTo('contacts')">
+                  View All ${needsAttention.length} Contacts
+                </button>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Upcoming Birthdays -->
+          ${upcomingBirthdays.length > 0 ? `
+            <div class="card mb-lg">
+              <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #FCE7F3; color: #9F1239; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">BIRTHDAYS</span>
+                <span>Upcoming Birthdays (${upcomingBirthdays.length})</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${upcomingBirthdays.map(({ contact, daysUntil }) => {
+                  const dayText = daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
+                  const birthdayText = contact.birthdayMonth && contact.birthdayDay ? `${contact.birthdayMonth} ${contact.birthdayDay}` : formatDate(contact.birthday);
+                  return `
+                    <div class="card card-clickable" style="padding: 0.75rem; margin: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                          <div style="font-weight: 600;">${escapeHtml(getFullName(contact))}</div>
+                          <div class="text-muted text-small">${birthdayText}</div>
+                        </div>
+                        <div class="text-small" style="color: var(--color-primary); font-weight: 600;">
+                          ${dayText}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Upcoming Activity -->
+          ${upcomingInteractions.length > 0 ? `
+            <div class="card mb-lg" style="border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.03), transparent);">
+              <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">UPCOMING</span>
+                <span>Upcoming Activity</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${upcomingInteractions.map(interaction => {
+                  const contact = getContact(interaction.contactId);
+                  const initials = getContactInitials(contact);
+                  return `
+                    <div class="card card-clickable" style="padding: 0.75rem; margin: 0; border-left: 2px dashed var(--color-primary);" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div style="display: flex; gap: 0.75rem; align-items: start;">
+                        <span class="icon" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; font-size: 0.875rem; font-weight: 700;">${initials}</span>
+                        <div style="flex: 1;">
+                          <div style="font-weight: 600; color: var(--color-primary);">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                          <div class="text-small" style="color: var(--color-primary); font-weight: 500;">${formatDate(interaction.date)} (${formatRelativeDate(interaction.date)})</div>
+                          ${interaction.notes ? `<div class="text-small mt-sm">${escapeHtml(interaction.notes)}</div>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Recent Activity -->
+          ${recentInteractions.length > 0 ? `
+            <div class="card mb-lg">
+              <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: #E0E7FF; color: #3730A3; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">ACTIVITY</span>
+                <span>Recent Activity</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${recentInteractions.map(interaction => {
+                  const contact = getContact(interaction.contactId);
+                  const initials = getContactInitials(contact);
+                  const status = getContactStatus(contact.id);
+                  return `
+                    <div class="card" style="padding: 0.75rem; margin: 0; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div style="display: flex; gap: 0.75rem; align-items: start;">
+                        <span class="icon" style="background: linear-gradient(135deg, var(--color-${status}) 0%, var(--color-${status}) 100%); color: white; font-size: 0.875rem; font-weight: 700;">${initials}</span>
+                        <div style="flex: 1;">
+                          <div style="font-weight: 600;">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                          <div class="text-muted text-small">${formatRelativeDate(interaction.date)}</div>
+                          ${interaction.notes ? `<div class="text-small mt-sm">${escapeHtml(interaction.notes)}</div>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Data Management -->
+          <div class="card">
+            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="background: #F3F4F6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">SETTINGS</span>
+              <span>Data Management</span>
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <button class="btn btn-secondary btn-block" onclick="exportData()">
+                Export JSON (Full Backup)
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="exportCSV()">
+                Export CSV (Contacts Only)
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-file').click()">
+                Import Data (Restore)
+              </button>
+              <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
+              <button class="btn btn-danger btn-block" onclick="clearAllData()">
+                Clear All Data
+              </button>
+            </div>
+            <p class="text-muted text-small" style="margin-top: 1rem;">
+              Export to JSON for full backup with interactions. Export to CSV for spreadsheet-compatible contact list.
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function getInteractionIcon(type) {
+      const icons = {
+        'Call': '☎️',
+        'Text': '💬',
+        'Email': '✉️',
+        'In-Person': '🤝',
+        'Video': '📹',
+        'Social': '📱'
+      };
+      return icons[type] || '💬';
+    }
+
+    function getInteractionIconClass(type) {
+      const iconClasses = {
+        'Call': 'icon-call',
+        'Text': 'icon-text',
+        'Email': 'icon-email',
+        'In-Person': 'icon-inperson',
+        'Video': 'icon-video',
+        'Social': 'icon-social'
+      };
+      return iconClasses[type] || 'icon-text';
+    }
+
+    function getInteractionIconText(type) {
+      const iconTexts = {
+        'Call': 'C',
+        'Text': 'T',
+        'Email': 'E',
+        'In-Person': 'P',
+        'Video': 'V',
+        'Social': 'S'
+      };
+      return iconTexts[type] || 'I';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Store filter state for contacts page
+    let contactFilterState = {
+      searchQuery: '',
+      filterTypes: [], // Empty array means all types
+      sortBy: 'name-asc'
+    };
+
+    function toggleFilterType(type) {
+      const idx = contactFilterState.filterTypes.indexOf(type);
+      if (idx === -1) {
+        contactFilterState.filterTypes.push(type);
+      } else {
+        contactFilterState.filterTypes.splice(idx, 1);
+      }
+      renderContactList();
+    }
+
+    function renderContactList(searchQuery, filterTypes, sortBy) {
+      // Update state if parameters are provided
+      if (searchQuery !== undefined) contactFilterState.searchQuery = searchQuery;
+      if (filterTypes !== undefined) contactFilterState.filterTypes = filterTypes;
+      if (sortBy !== undefined) contactFilterState.sortBy = sortBy;
+
+      const app = document.getElementById('app');
+
+      if (AppState.contacts.length === 0) {
+        app.innerHTML = `
+          <div class="view">
+            <div class="view-header">
+              <h1 class="view-title">Contacts</h1>
+            </div>
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">No Contacts</div>
+              <h2>No Contacts Yet</h2>
+              <p class="text-muted">Add your first contact to get started.</p>
+              <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Contact</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Filter and sort contacts
+      let contacts = [...AppState.contacts];
+
+      // Apply search filter
+      if (contactFilterState.searchQuery) {
+        const query = contactFilterState.searchQuery.toLowerCase();
+        contacts = contacts.filter(c =>
+          getFullName(c).toLowerCase().includes(query) ||
+          c.email?.toLowerCase().includes(query) ||
+          c.phone?.includes(query)
+        );
+      }
+
+      // Apply relationship type filter (multi-select)
+      if (contactFilterState.filterTypes.length > 0) {
+        contacts = contacts.filter(c => contactFilterState.filterTypes.includes(c.relationshipType));
+      }
+
+      // Apply sorting
+      const currentSort = contactFilterState.sortBy;
+      if (currentSort === 'name-asc') {
+        contacts.sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
+      } else if (currentSort === 'name-desc') {
+        contacts.sort((a, b) => getFullName(b).localeCompare(getFullName(a)));
+      } else if (currentSort === 'lastContacted-asc') {
+        contacts.sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) ?? 9999;
+          const daysB = getDaysSinceLastContact(b.id) ?? 9999;
+          return daysA - daysB;
+        });
+      } else if (currentSort === 'lastContacted-desc') {
+        contacts.sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) ?? 9999;
+          const daysB = getDaysSinceLastContact(b.id) ?? 9999;
+          return daysB - daysA;
+        });
+      } else if (currentSort === 'relationship-asc') {
+        const order = ['Family', 'Close Friend', 'Friend', 'Professional', 'Acquaintance'];
+        contacts.sort((a, b) => order.indexOf(a.relationshipType) - order.indexOf(b.relationshipType));
+      } else if (currentSort === 'relationship-desc') {
+        const order = ['Family', 'Close Friend', 'Friend', 'Professional', 'Acquaintance'];
+        contacts.sort((a, b) => order.indexOf(b.relationshipType) - order.indexOf(a.relationshipType));
+      }
+
+      const relationshipTypes = ['Family', 'Close Friend', 'Friend', 'Professional', 'Acquaintance'];
+
+      app.innerHTML = `
+        <div class="view">
+          <div class="view-header">
+            <h1 class="view-title">Contacts (${AppState.contacts.length})</h1>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="form-group">
+            <input
+              type="search"
+              class="form-input"
+              placeholder="Search contacts..."
+              value="${escapeHtml(contactFilterState.searchQuery)}"
+              oninput="renderContactList(this.value)"
+            />
+          </div>
+
+          <!-- Filter Chips (Multi-select) -->
+          <div class="filter-chips">
+            ${relationshipTypes.map(type => `
+              <button
+                type="button"
+                class="filter-chip ${contactFilterState.filterTypes.includes(type) ? 'selected' : ''}"
+                onclick="toggleFilterType('${type}')"
+              >${type}</button>
+            `).join('')}
+          </div>
+
+          <!-- Sort Dropdown -->
+          <div class="form-group mb-md">
+            <select class="form-select" onchange="renderContactList(undefined, undefined, this.value)">
+              <option value="name-asc" ${currentSort === 'name-asc' ? 'selected' : ''}>Name: A→Z</option>
+              <option value="name-desc" ${currentSort === 'name-desc' ? 'selected' : ''}>Name: Z→A</option>
+              <option value="lastContacted-desc" ${currentSort === 'lastContacted-desc' ? 'selected' : ''}>Last Contact: Oldest</option>
+              <option value="lastContacted-asc" ${currentSort === 'lastContacted-asc' ? 'selected' : ''}>Last Contact: Recent</option>
+              <option value="relationship-asc" ${currentSort === 'relationship-asc' ? 'selected' : ''}>Type: Family First</option>
+              <option value="relationship-desc" ${currentSort === 'relationship-desc' ? 'selected' : ''}>Type: Acquaintance First</option>
+            </select>
+          </div>
+
+          <!-- Contact List -->
+          ${contacts.length === 0 ? `
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 1.5rem; color: var(--color-text-secondary);">No Results</div>
+              <p>No contacts match your search.</p>
+            </div>
+          ` : `
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              ${contacts.map(contact => {
+                const days = getDaysSinceLastContact(contact.id);
+                const status = getContactStatus(contact.id);
+                const statusText = days === null ? 'Never contacted' : days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
+                const priorityStyle = contact.priority ? 'background: linear-gradient(to right, rgba(239, 68, 68, 0.08), transparent);' : '';
+
+                return `
+                  <div class="card card-clickable" style="border-left: 3px solid var(--color-${status}); padding: 1rem; margin: 0; ${priorityStyle}" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                          <span class="status-dot status-${status}"></span>
+                          <span style="font-weight: 600; font-size: 1.1rem;">${escapeHtml(getFullName(contact))}</span>
+                          ${contact.priority ? `<span style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: white; padding: 0.125rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700;">CONTACT ASAP</span>` : ''}
+                        </div>
+                        <div class="text-muted text-small">${contact.relationshipType}</div>
+                      </div>
+                      <div style="text-align: right;">
+                        <div class="text-small" style="color: var(--color-${status}); font-weight: 600;">
+                          ${statusText}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderActivity() {
+      const app = document.getElementById('app');
+
+      if (AppState.interactions.length === 0) {
+        app.innerHTML = `
+          <div class="view">
+            <div class="view-header">
+              <h1 class="view-title">Activity Timeline</h1>
+            </div>
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">No Activity</div>
+              <h2>No Activity Yet</h2>
+              <p class="text-muted">Start logging interactions to see your activity timeline.</p>
+              <button class="btn mt-md" onclick="navigateTo('contacts')">View Contacts</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Get all interactions with contact info, sorted by date (most recent first)
+      const allInteractions = AppState.interactions
+        .map(interaction => ({
+          ...interaction,
+          contact: getContact(interaction.contactId)
+        }))
+        .filter(item => item.contact) // Filter out interactions for deleted contacts
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // Group interactions by date
+      const groupedByDate = {};
+      allInteractions.forEach(interaction => {
+        const dateKey = interaction.date;
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = [];
+        }
+        groupedByDate[dateKey].push(interaction);
+      });
+
+      const dates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
+
+      app.innerHTML = `
+        <div class="view">
+          <div class="view-header">
+            <h1 class="view-title">Activity Timeline</h1>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            ${dates.map(date => {
+              const interactions = groupedByDate[date];
+              const dateObj = new Date(date + 'T00:00:00');
+              const isToday = date === new Date().toISOString().split('T')[0];
+              const isYesterday = date === new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+              let dateLabel;
+              if (isToday) {
+                dateLabel = 'Today';
+              } else if (isYesterday) {
+                dateLabel = 'Yesterday';
+              } else {
+                dateLabel = formatDate(date);
+              }
+
+              return `
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <h2 style="font-size: 1.1rem; font-weight: 600; color: var(--color-primary);">${dateLabel}</h2>
+                    <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
+                    <span class="text-muted text-small">${interactions.length} interaction${interactions.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    ${interactions.map(interaction => {
+                      const initials = getContactInitials(interaction.contact);
+                      const status = getContactStatus(interaction.contact.id);
+                      const isFuture = isFutureDate(interaction.date);
+                      const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
+                      const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                      return `
+                        <div class="card card-clickable" style="padding: 1rem; margin: 0; ${borderStyle}" onclick="navigateTo('contact', {id: '${interaction.contact.id}'})">
+                          <div style="display: flex; gap: 0.75rem; align-items: start;">
+                            <span class="icon icon-${status}" style="background: linear-gradient(135deg, var(--color-${status}) 0%, var(--color-${status}) 100%); color: white; font-size: 0.875rem; font-weight: 700; ${isFuture ? 'opacity: 0.7; border: 2px dashed var(--color-primary);' : ''}">${initials}</span>
+                            <div style="flex: 1;">
+                              <div style="font-weight: 600; margin-bottom: 0.25rem; ${isFuture ? 'color: var(--color-primary);' : ''}">
+                                ${typeLabel} with ${escapeHtml(getFullName(interaction.contact))}
+                              </div>
+                              <div class="text-muted text-small">${interaction.contact.relationshipType}</div>
+                              ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtml(interaction.notes)}</div>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderContactDetail() {
+      const app = document.getElementById('app');
+      const contact = getContact(AppState.selectedContactId);
+
+      if (!contact) {
+        app.innerHTML = `
+          <div class="view">
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-danger);">Not Found</div>
+              <h2>Contact Not Found</h2>
+              <button class="btn mt-md" onclick="navigateTo('contacts')">Back to Contacts</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const days = getDaysSinceLastContact(contact.id);
+      const status = getContactStatus(contact.id);
+      const statusText = days === null ? 'Never contacted' : days === 0 ? 'Last contact: Today' : days === 1 ? 'Last contact: Yesterday' : `Last contact: ${days} days ago`;
+      const interactions = getInteractionsByContact(contact.id);
+
+      app.innerHTML = `
+        <div class="view">
+          <!-- Header with back button -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <button class="back-button" onclick="navigateTo('contacts')">← Back</button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button
+                class="btn ${contact.priority ? 'btn-danger' : 'btn-secondary'}"
+                style="padding: 0.5rem 1rem; font-size: 0.875rem;"
+                onclick="toggleContactPriority('${contact.id}')"
+                title="${contact.priority ? 'Remove from priority' : 'Mark as priority contact'}"
+              >
+                ${contact.priority ? '⚠️ Contact ASAP' : 'Mark as Priority'}
+              </button>
+              <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('edit-contact', {id: '${contact.id}'})">Edit</button>
+            </div>
+          </div>
+
+          <!-- Contact Profile Card -->
+          <div class="card mb-lg" style="border-left: 4px solid var(--color-${status});">
+            <div style="margin-bottom: 1.5rem;">
+              <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.025em;">${escapeHtml(getFullName(contact))}</h1>
+              <div style="color: var(--color-text-secondary); font-size: 0.9375rem;">${contact.relationshipType}</div>
+            </div>
+
+            <!-- Status -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 1rem; background: var(--color-background); border-radius: var(--border-radius); margin-bottom: 1.5rem;">
+              <span class="status-dot status-${status}"></span>
+              <span style="color: var(--color-${status}); font-weight: 600; font-size: 0.9375rem;">${statusText}</span>
+            </div>
+
+            <!-- Contact Info -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              ${contact.phone ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">Phone</span>
+                  <a href="tel:${contact.phone}" style="color: var(--color-text-primary); text-decoration: none;">${escapeHtml(contact.phone)}</a>
+                </div>
+              ` : ''}
+              ${contact.email ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">Email</span>
+                  <a href="mailto:${contact.email}" style="color: var(--color-text-primary); text-decoration: none;">${escapeHtml(contact.email)}</a>
+                </div>
+              ` : ''}
+              ${contact.linkedin ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">LinkedIn</span>
+                  <a href="${escapeHtml(contact.linkedin)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: none;">View Profile →</a>
+                </div>
+              ` : ''}
+              ${contact.industry ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">Industry</span>
+                  <span>${escapeHtml(contact.industry)}</span>
+                </div>
+              ` : ''}
+              ${contact.birthdayMonth && contact.birthdayDay ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">Birthday</span>
+                  <span>${contact.birthdayMonth} ${contact.birthdayDay}</span>
+                </div>
+              ` : contact.birthday ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">Birthday</span>
+                  <span>${formatDate(contact.birthday)}</span>
+                </div>
+              ` : ''}
+              ${contact.howWeMet ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="min-width: 100px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem;">How We Met</span>
+                  <span class="text-muted">${escapeHtml(contact.howWeMet)}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Log Interaction Button -->
+          <button class="btn btn-block mb-lg" onclick="openInteractionModal('${contact.id}')">
+            Log New Interaction
+          </button>
+
+          <!-- Interaction History -->
+          <div class="card">
+            <h2 class="mb-md">Interaction History (${interactions.length})</h2>
+            ${interactions.length === 0 ? `
+              <div class="empty-state">
+                <p class="text-muted">No interactions yet.</p>
+                <p class="text-muted text-small">Log your first interaction to start tracking.</p>
+              </div>
+            ` : `
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${interactions.map(interaction => {
+                  const isFuture = isFutureDate(interaction.date);
+                  const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
+                  const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                  return `
+                    <div class="card" style="padding: 1rem; margin: 0; position: relative; ${borderStyle}">
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
+                        <div style="font-weight: 600; font-size: 0.9375rem; ${isFuture ? 'color: var(--color-primary);' : ''}">${typeLabel}</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                          <button
+                            onclick="openEditInteractionModal('${interaction.id}')"
+                            style="background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: 0.875rem; font-weight: 500;"
+                            title="Edit interaction"
+                          >Edit</button>
+                          <button
+                            onclick="deleteInteractionWithConfirm('${interaction.id}')"
+                            style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; font-size: 0.875rem; font-weight: 500;"
+                            title="Delete interaction"
+                          >Delete</button>
+                        </div>
+                      </div>
+                      <div class="text-muted text-small" style="${isFuture ? 'color: var(--color-primary); font-weight: 500;' : ''}">${formatDate(interaction.date)} (${formatRelativeDate(interaction.date)})</div>
+                      ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtml(interaction.notes)}</div>` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+
+          <!-- Delete Contact Button -->
+          <div class="mt-md">
+            <button class="btn btn-danger btn-block" onclick="deleteContactWithConfirm('${contact.id}')">
+              Delete Contact
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function deleteInteractionWithConfirm(interactionId) {
+      if (confirm('Delete this interaction? This cannot be undone.')) {
+        deleteInteraction(interactionId);
+        showToast('Interaction deleted');
+        renderCurrentView();
+      }
+    }
+
+    function deleteContactWithConfirm(contactId) {
+      const contact = getContact(contactId);
+      if (confirm(`Delete ${getFullName(contact)} and all interactions? This cannot be undone.`)) {
+        deleteContact(contactId);
+        showToast('Contact deleted');
+        navigateTo('contacts');
+      }
+    }
+
+    function renderContactForm() {
+      const app = document.getElementById('app');
+      const isEdit = AppState.currentView === 'edit-contact';
+      const contact = isEdit ? getContact(AppState.selectedContactId) : null;
+
+      if (isEdit && !contact) {
+        app.innerHTML = `
+          <div class="view">
+            <div class="empty-state">
+              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-danger);">Not Found</div>
+              <h2>Contact Not Found</h2>
+              <button class="btn mt-md" onclick="navigateTo('contacts')">Back to Contacts</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      app.innerHTML = `
+        <div class="view">
+          <!-- Header -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <button class="back-button" onclick="navigateTo(${isEdit ? `'contact', {id: '${contact.id}'}` : "'contacts'"})">← Cancel</button>
+            <h1 class="view-title">${isEdit ? 'Edit Contact' : 'Add Contact'}</h1>
+          </div>
+
+          <!-- Form -->
+          <form id="contact-form" onsubmit="handleContactFormSubmit(event)">
+            <!-- First Name and Last Name -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">First Name *</label>
+                <input
+                  type="text"
+                  id="contact-firstname"
+                  name="firstName"
+                  class="form-input"
+                  placeholder="First name"
+                  value="${contact ? escapeHtml(contact.firstName || contact.name?.split(' ')[0] || '') : ''}"
+                  required
+                  autofocus
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last Name</label>
+                <input
+                  type="text"
+                  id="contact-lastname"
+                  name="lastName"
+                  class="form-input"
+                  placeholder="Last name"
+                  value="${contact ? escapeHtml(contact.lastName || contact.name?.split(' ').slice(1).join(' ') || '') : ''}"
+                />
+              </div>
+            </div>
+
+            <!-- Relationship Type -->
+            <div class="form-group">
+              <label class="form-label">Relationship Type *</label>
+              <select id="contact-relationship" name="relationshipType" class="form-select" required>
+                <option value="">Select type</option>
+                <option value="Family" ${contact?.relationshipType === 'Family' ? 'selected' : ''}>Family</option>
+                <option value="Close Friend" ${contact?.relationshipType === 'Close Friend' ? 'selected' : ''}>Close Friend</option>
+                <option value="Friend" ${contact?.relationshipType === 'Friend' ? 'selected' : ''}>Friend</option>
+                <option value="Professional" ${contact?.relationshipType === 'Professional' ? 'selected' : ''}>Professional</option>
+                <option value="Acquaintance" ${contact?.relationshipType === 'Acquaintance' ? 'selected' : ''}>Acquaintance</option>
+              </select>
+            </div>
+
+            <!-- How We Met -->
+            <div class="form-group">
+              <label class="form-label">How We Met</label>
+              <input
+                type="text"
+                id="contact-howwemet"
+                name="howWeMet"
+                class="form-input"
+                placeholder="e.g., College, Work, Mutual friend"
+                value="${contact ? escapeHtml(contact.howWeMet) : ''}"
+              />
+            </div>
+
+            <!-- Phone -->
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input
+                type="tel"
+                id="contact-phone"
+                name="phone"
+                class="form-input"
+                placeholder="e.g., (555) 123-4567"
+                value="${contact ? escapeHtml(contact.phone) : ''}"
+                oninput="this.value = formatPhoneNumber(this.value)"
+                maxlength="14"
+              />
+              <div id="phone-error" class="text-small" style="color: var(--color-danger); margin-top: 0.25rem; display: none;">*please enter a 10-digit phone number without spaces</div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input
+                type="email"
+                id="contact-email"
+                name="email"
+                class="form-input"
+                placeholder="email@example.com"
+                value="${contact ? escapeHtml(contact.email) : ''}"
+              />
+              <div id="email-error" class="text-small" style="color: var(--color-danger); margin-top: 0.25rem; display: none;">Please enter a valid email address</div>
+            </div>
+
+            <!-- LinkedIn URL and Industry -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">LinkedIn URL</label>
+                <input
+                  type="url"
+                  id="contact-linkedin"
+                  name="linkedin"
+                  class="form-input"
+                  placeholder="https://linkedin.com/in/username"
+                  value="${contact ? escapeHtml(contact.linkedin || '') : ''}"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Industry</label>
+                <input
+                  type="text"
+                  id="contact-industry"
+                  name="industry"
+                  class="form-input"
+                  placeholder="e.g., Technology, Finance"
+                  value="${contact ? escapeHtml(contact.industry || '') : ''}"
+                />
+              </div>
+            </div>
+
+            <!-- Birthday -->
+            <div class="form-group">
+              <label class="form-label">Birthday</label>
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+                <select id="contact-birthday-month" name="birthdayMonth" class="form-select">
+                  <option value="">Month</option>
+                  <option value="January" ${contact?.birthdayMonth === 'January' ? 'selected' : ''}>January</option>
+                  <option value="February" ${contact?.birthdayMonth === 'February' ? 'selected' : ''}>February</option>
+                  <option value="March" ${contact?.birthdayMonth === 'March' ? 'selected' : ''}>March</option>
+                  <option value="April" ${contact?.birthdayMonth === 'April' ? 'selected' : ''}>April</option>
+                  <option value="May" ${contact?.birthdayMonth === 'May' ? 'selected' : ''}>May</option>
+                  <option value="June" ${contact?.birthdayMonth === 'June' ? 'selected' : ''}>June</option>
+                  <option value="July" ${contact?.birthdayMonth === 'July' ? 'selected' : ''}>July</option>
+                  <option value="August" ${contact?.birthdayMonth === 'August' ? 'selected' : ''}>August</option>
+                  <option value="September" ${contact?.birthdayMonth === 'September' ? 'selected' : ''}>September</option>
+                  <option value="October" ${contact?.birthdayMonth === 'October' ? 'selected' : ''}>October</option>
+                  <option value="November" ${contact?.birthdayMonth === 'November' ? 'selected' : ''}>November</option>
+                  <option value="December" ${contact?.birthdayMonth === 'December' ? 'selected' : ''}>December</option>
+                </select>
+                <input
+                  type="number"
+                  id="contact-birthday-day"
+                  name="birthdayDay"
+                  class="form-input"
+                  placeholder="Day"
+                  min="1"
+                  max="31"
+                  value="${contact?.birthdayDay || ''}"
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-block" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+              ${isEdit ? 'Save Changes' : 'Add Contact'}
+            </button>
+          </form>
+        </div>
+      `;
+
+      // Set up real-time validation
+      setTimeout(() => {
+        const phoneInput = document.getElementById('contact-phone');
+        const emailInput = document.getElementById('contact-email');
+        const phoneError = document.getElementById('phone-error');
+        const emailError = document.getElementById('email-error');
+
+        if (phoneInput) {
+          phoneInput.addEventListener('blur', () => {
+            const digits = phoneInput.value.replace(/\D/g, '');
+            if (phoneInput.value && digits.length !== 10) {
+              phoneError.style.display = 'block';
+            } else {
+              phoneError.style.display = 'none';
+            }
+          });
+          phoneInput.addEventListener('input', () => {
+            const digits = phoneInput.value.replace(/\D/g, '');
+            if (digits.length === 10) {
+              phoneError.style.display = 'none';
+            }
+          });
+        }
+
+        if (emailInput) {
+          emailInput.addEventListener('blur', () => {
+            if (emailInput.value && !validateEmail(emailInput.value)) {
+              emailError.style.display = 'block';
+            } else {
+              emailError.style.display = 'none';
+            }
+          });
+        }
+      }, 0);
+    }
+
+    function handleContactFormSubmit(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const data = {
+        firstName: formData.get('firstName').trim(),
+        lastName: formData.get('lastName').trim(),
+        relationshipType: formData.get('relationshipType'),
+        howWeMet: formData.get('howWeMet').trim(),
+        phone: formData.get('phone').trim(),
+        email: formData.get('email').trim(),
+        linkedin: formData.get('linkedin').trim(),
+        industry: formData.get('industry').trim(),
+        birthdayMonth: formData.get('birthdayMonth'),
+        birthdayDay: formData.get('birthdayDay')
+      };
+
+      // Validate
+      if (!data.firstName) {
+        showToast('First name is required', 'error');
+        return;
+      }
+
+      if (!data.relationshipType) {
+        showToast('Relationship type is required', 'error');
+        return;
+      }
+
+      if (data.email && !validateEmail(data.email)) {
+        showToast('Invalid email address', 'error');
+        return;
+      }
+
+      if (data.phone && !validatePhone(data.phone)) {
+        showToast('Invalid phone number', 'error');
+        return;
+      }
+
+      // Validate birthday day (max 31)
+      if (data.birthdayDay && (parseInt(data.birthdayDay) < 1 || parseInt(data.birthdayDay) > 31)) {
+        showToast('Birthday day must be between 1 and 31', 'error');
+        return;
+      }
+
+      // Validate birthday - if one is provided, both must be
+      if ((data.birthdayMonth && !data.birthdayDay) || (!data.birthdayMonth && data.birthdayDay)) {
+        showToast('Please enter both month and day for birthday', 'error');
+        return;
+      }
+
+      // Save
+      const isEdit = AppState.currentView === 'edit-contact';
+      if (isEdit) {
+        updateContact(AppState.selectedContactId, data);
+        showToast('Contact updated');
+        navigateTo('contact', { id: AppState.selectedContactId });
+      } else {
+        const newContact = addContact(data);
+        showToast('Contact added');
+        navigateTo('contact', { id: newContact.id });
+      }
+    }
+
+    /* ===== INTERACTION MODAL ===== */
+
+    let interactionModalState = {
+      contactId: null,
+      selectedType: null,
+      selectedDate: new Date().toISOString().split('T')[0]
+    };
+
+    function openInteractionModal(contactId) {
+      const contact = getContact(contactId);
+      if (!contact) return;
+
+      interactionModalState = {
+        contactId: contactId,
+        selectedType: null,
+        selectedDate: new Date().toISOString().split('T')[0]
+      };
+
+      const modal = document.getElementById('interaction-modal');
+      const modalContent = document.getElementById('modal-content');
+
+      const interactionTypes = [
+        { type: 'Call', icon: '☎️' },
+        { type: 'Text', icon: '💬' },
+        { type: 'Email', icon: '✉️' },
+        { type: 'In-Person', icon: '🤝' },
+        { type: 'Video', icon: '📹' },
+        { type: 'Social', icon: '📱' }
+      ];
+
+      modalContent.innerHTML = `
+        <p class="text-muted mb-md">with ${escapeHtml(contact.name)}</p>
+
+        <!-- Date Selection -->
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <div class="quick-dates">
+            <button type="button" class="quick-date-btn selected" onclick="selectQuickDate('today')">Today</button>
+            <button type="button" class="quick-date-btn" onclick="selectQuickDate('yesterday')">Yesterday</button>
+            <button type="button" class="quick-date-btn" onclick="selectQuickDate('2days')">2 days ago</button>
+          </div>
+          <input
+            type="date"
+            id="interaction-date"
+            class="form-input"
+            value="${interactionModalState.selectedDate}"
+            onchange="interactionModalState.selectedDate = this.value; updateQuickDateButtons();"
+          />
+        </div>
+
+        <!-- Interaction Type -->
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <div class="interaction-types">
+            ${interactionTypes.map(({ type, icon }) => `
+              <button
+                type="button"
+                class="interaction-type-btn"
+                onclick="selectInteractionType('${type}')"
+                data-type="${type}"
+              >
+                <span class="icon">${icon}</span>
+                <span class="label">${type}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea
+            id="interaction-notes"
+            class="form-textarea"
+            placeholder="Add any notes about this interaction..."
+            rows="3"
+          ></textarea>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn-block" onclick="handleInteractionSubmit()">Log Interaction</button>
+      `;
+
+      modal.classList.add('active');
+    }
+
+    function openEditInteractionModal(interactionId) {
+      const interaction = AppState.interactions.find(i => i.id === interactionId);
+      if (!interaction) return;
+
+      const contact = getContact(interaction.contactId);
+      if (!contact) return;
+
+      interactionModalState = {
+        contactId: interaction.contactId,
+        selectedType: interaction.type,
+        selectedDate: interaction.date,
+        editingId: interactionId
+      };
+
+      const modal = document.getElementById('interaction-modal');
+      const modalContent = document.getElementById('modal-content');
+      const modalTitle = document.querySelector('.modal-title');
+      modalTitle.textContent = 'Edit Interaction';
+
+      const interactionTypes = [
+        { type: 'Call', icon: '☎️' },
+        { type: 'Text', icon: '💬' },
+        { type: 'Email', icon: '✉️' },
+        { type: 'In-Person', icon: '🤝' },
+        { type: 'Video', icon: '📹' },
+        { type: 'Social', icon: '📱' }
+      ];
+
+      modalContent.innerHTML = `
+        <p class="text-muted mb-md">with ${escapeHtml(getFullName(contact))}</p>
+
+        <!-- Date Selection -->
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input
+            type="date"
+            id="interaction-date"
+            class="form-input"
+            value="${interaction.date}"
+            onchange="interactionModalState.selectedDate = this.value;"
+          />
+        </div>
+
+        <!-- Interaction Type -->
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <div class="interaction-types">
+            ${interactionTypes.map(({ type, icon }) => `
+              <button
+                type="button"
+                class="interaction-type-btn ${type === interaction.type ? 'selected' : ''}"
+                onclick="selectInteractionType('${type}')"
+                data-type="${type}"
+              >
+                <span class="icon">${icon}</span>
+                <span class="label">${type}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea
+            id="interaction-notes"
+            class="form-textarea"
+            placeholder="Add any notes about this interaction..."
+            rows="3"
+          >${escapeHtml(interaction.notes || '')}</textarea>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn-block" onclick="handleInteractionSubmit()">Save Changes</button>
+      `;
+
+      modal.classList.add('active');
+    }
+
+    function closeInteractionModal() {
+      const modal = document.getElementById('interaction-modal');
+      modal.classList.remove('active');
+
+      // Reset modal title
+      const modalTitle = document.querySelector('.modal-title');
+      modalTitle.textContent = 'Log Interaction';
+
+      interactionModalState = { contactId: null, selectedType: null, selectedDate: new Date().toISOString().split('T')[0] };
+    }
+
+    function selectQuickDate(option) {
+      const today = new Date();
+      let date;
+
+      if (option === 'today') {
+        date = today;
+      } else if (option === 'yesterday') {
+        date = new Date(today);
+        date.setDate(date.getDate() - 1);
+      } else if (option === '2days') {
+        date = new Date(today);
+        date.setDate(date.getDate() - 2);
+      }
+
+      interactionModalState.selectedDate = date.toISOString().split('T')[0];
+      document.getElementById('interaction-date').value = interactionModalState.selectedDate;
+      updateQuickDateButtons();
+    }
+
+    function updateQuickDateButtons() {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const twoDaysAgo = new Date(Date.now() - 172800000).toISOString().split('T')[0];
+      const selected = interactionModalState.selectedDate;
+
+      document.querySelectorAll('.quick-date-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+
+      if (selected === today) {
+        document.querySelectorAll('.quick-date-btn')[0]?.classList.add('selected');
+      } else if (selected === yesterday) {
+        document.querySelectorAll('.quick-date-btn')[1]?.classList.add('selected');
+      } else if (selected === twoDaysAgo) {
+        document.querySelectorAll('.quick-date-btn')[2]?.classList.add('selected');
+      }
+    }
+
+    function selectInteractionType(type) {
+      interactionModalState.selectedType = type;
+
+      document.querySelectorAll('.interaction-type-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+
+      document.querySelector(`.interaction-type-btn[data-type="${type}"]`)?.classList.add('selected');
+    }
+
+    function handleInteractionSubmit() {
+      if (!interactionModalState.selectedType) {
+        showToast('Please select an interaction type', 'error');
+        return;
+      }
+
+      const notes = document.getElementById('interaction-notes')?.value || '';
+
+      if (interactionModalState.editingId) {
+        // Edit existing interaction
+        updateInteraction(interactionModalState.editingId, {
+          date: interactionModalState.selectedDate,
+          type: interactionModalState.selectedType,
+          notes: notes
+        });
+        showToast('Interaction updated');
+      } else {
+        // Add new interaction
+        addInteraction({
+          contactId: interactionModalState.contactId,
+          date: interactionModalState.selectedDate,
+          type: interactionModalState.selectedType,
+          notes: notes
+        });
+        showToast('Interaction logged');
+      }
+
+      closeInteractionModal();
+      renderCurrentView();
+    }
+
+    /* ===== DATA EXPORT/IMPORT ===== */
+
+    function exportData() {
+      try {
+        const data = {
+          version: '1.0',
+          exportedAt: new Date().toISOString(),
+          contacts: AppState.contacts,
+          interactions: AppState.interactions,
+          totalContacts: AppState.contacts.length,
+          totalInteractions: AppState.interactions.length
+        };
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relationship-crm-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('Data exported successfully');
+      } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error exporting data', 'error');
+      }
+    }
+
+    function exportCSV() {
+      try {
+        if (AppState.contacts.length === 0) {
+          showToast('No contacts to export', 'error');
+          return;
+        }
+
+        // CSV headers
+        const headers = ['Name', 'Relationship Type', 'Phone', 'Email', 'LinkedIn', 'Industry', 'Birthday Month', 'Birthday Day', 'How We Met', 'Last Contacted'];
+
+        // Convert contacts to CSV rows
+        const rows = AppState.contacts.map(contact => {
+          const lastContactDate = contact.lastContactedAt ? new Date(contact.lastContactedAt).toLocaleDateString() : 'Never';
+          return [
+            getFullName(contact),
+            contact.relationshipType,
+            contact.phone || '',
+            contact.email || '',
+            contact.linkedin || '',
+            contact.industry || '',
+            contact.birthdayMonth || '',
+            contact.birthdayDay || '',
+            contact.howWeMet || '',
+            lastContactDate
+          ];
+        });
+
+        // Combine headers and rows
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        // Create and download the file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relationship-crm-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('Contacts exported to CSV');
+      } catch (error) {
+        console.error('CSV export error:', error);
+        showToast('Error exporting CSV', 'error');
+      }
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+
+          // Validate structure
+          if (!data.contacts || !data.interactions || !Array.isArray(data.contacts) || !Array.isArray(data.interactions)) {
+            throw new Error('Invalid backup file format');
+          }
+
+          // Ask user if they want to merge or replace
+          const merge = confirm(
+            `Import ${data.contacts.length} contacts and ${data.interactions.length} interactions?\n\n` +
+            `Click OK to REPLACE your current data.\n` +
+            `Click Cancel to MERGE with existing data.`
+          );
+
+          if (merge === false) {
+            // Merge: combine with existing data
+            // Create a map of existing contact IDs to avoid duplicates by name
+            const existingNames = new Set(AppState.contacts.map(c => getFullName(c).toLowerCase()));
+            const newContacts = data.contacts.filter(c => {
+              const fullName = c.firstName && c.lastName ? `${c.firstName} ${c.lastName}`.trim().toLowerCase() : (c.name || '').toLowerCase();
+              return !existingNames.has(fullName);
+            });
+
+            AppState.contacts = [...AppState.contacts, ...newContacts];
+            AppState.interactions = [...AppState.interactions, ...data.interactions];
+
+            showToast(`Imported ${newContacts.length} new contacts and ${data.interactions.length} interactions`);
+          } else {
+            // Replace: overwrite existing data
+            AppState.contacts = data.contacts;
+            AppState.interactions = data.interactions;
+
+            showToast(`Imported ${data.contacts.length} contacts and ${data.interactions.length} interactions`);
+          }
+
+          saveState();
+          renderCurrentView();
+
+          // Clear the file input
+          event.target.value = '';
+        } catch (error) {
+          console.error('Import error:', error);
+          showToast('Error importing data: ' + error.message, 'error');
+          event.target.value = '';
+        }
+      };
+
+      reader.onerror = () => {
+        showToast('Error reading file', 'error');
+        event.target.value = '';
+      };
+
+      reader.readAsText(file);
+    }
+
+    function clearAllData() {
+      const contactCount = AppState.contacts.length;
+      const interactionCount = AppState.interactions.length;
+
+      if (contactCount === 0) {
+        showToast('No data to clear', 'error');
+        return;
+      }
+
+      const confirmed = confirm(
+        `⚠️ WARNING: Delete ALL data?\n\n` +
+        `This will permanently delete:\n` +
+        `• ${contactCount} contacts\n` +
+        `• ${interactionCount} interactions\n\n` +
+        `This cannot be undone. Export a backup first if needed.\n\n` +
+        `Type "DELETE" to confirm.`
+      );
+
+      if (!confirmed) return;
+
+      const doubleConfirm = prompt('Type DELETE to confirm:');
+      if (doubleConfirm !== 'DELETE') {
+        showToast('Deletion cancelled', 'error');
+        return;
+      }
+
+      // Clear all data
+      AppState.contacts = [];
+      AppState.interactions = [];
+      localStorage.clear();
+      saveState();
+
+      showToast('All data cleared');
+      navigateTo('dashboard');
+    }
+
+    /* ===== SAMPLE DATA (for testing) ===== */
+
+    function loadSampleData() {
+      if (AppState.contacts.length > 0) {
+        if (!confirm('This will add sample data to your existing contacts. Continue?')) {
+          return;
+        }
+      }
+
+      const sampleContacts = [
+        { firstName: 'Mom', lastName: '', relationshipType: 'Family', phone: '(555) 123-4567', birthdayMonth: 'March', birthdayDay: '15', howWeMet: 'Family' },
+        { firstName: 'Sarah', lastName: 'Johnson', relationshipType: 'Close Friend', email: 'sarah@email.com', linkedin: 'https://linkedin.com/in/sarahjohnson', industry: 'Technology', birthdayMonth: 'July', birthdayDay: '22', howWeMet: 'College' },
+        { firstName: 'Alex', lastName: 'Chen', relationshipType: 'Friend', phone: '(555) 234-5678', email: 'alex@email.com', industry: 'Design', birthdayMonth: 'November', birthdayDay: '8', howWeMet: 'Work' },
+        { firstName: 'Mike', lastName: 'Davis', relationshipType: 'Professional', email: 'mike@company.com', linkedin: 'https://linkedin.com/in/mikedavis', industry: 'Finance', howWeMet: 'Conference' },
+        { firstName: 'Emma', lastName: 'Wilson', relationshipType: 'Acquaintance', email: 'emma@email.com', industry: 'Marketing', birthdayMonth: 'January', birthdayDay: '30', howWeMet: 'Mutual friend' }
+      ];
+
+      sampleContacts.forEach(data => {
+        const contact = addContact(data);
+
+        // Add some sample interactions
+        const now = new Date();
+        const interactions = [
+          { days: 2, type: 'Call', notes: 'Caught up on life' },
+          { days: 15, type: 'Text', notes: 'Quick check-in' },
+          { days: 30, type: 'In-Person', notes: 'Coffee meeting' }
+        ];
+
+        interactions.slice(0, Math.floor(Math.random() * 3) + 1).forEach(int => {
+          const date = new Date(now);
+          date.setDate(date.getDate() - int.days);
+          addInteraction({
+            contactId: contact.id,
+            date: date.toISOString().split('T')[0],
+            type: int.type,
+            notes: int.notes
+          });
+        });
+      });
+
+      showToast('Sample data loaded');
+      renderCurrentView();
+    }
+
+    /* ===== INITIALIZATION ===== */
+
+    function init() {
+      // Load data from localStorage
+      loadState();
+
+      // Set up hash change listener
+      window.addEventListener('hashchange', handleHashChange);
+
+      // Set up bottom navigation
+      document.querySelectorAll('.nav-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const route = btn.getAttribute('data-route');
+          navigateTo(route);
+        });
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener('keydown', (e) => {
+        // ESC to close modal
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('interaction-modal');
+          if (modal && modal.classList.contains('active')) {
+            closeInteractionModal();
+          }
+        }
+
+        // Ctrl/Cmd + K to search (focus search input if on contacts page)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          if (AppState.currentView === 'contacts') {
+            const searchInput = document.querySelector('input[type="search"]');
+            if (searchInput) searchInput.focus();
+          } else {
+            navigateTo('contacts');
+          }
+        }
+
+        // Ctrl/Cmd + N to add new contact
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+          e.preventDefault();
+          navigateTo('add-contact');
+        }
+
+        // Ctrl/Cmd + H to go home (dashboard)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+          e.preventDefault();
+          navigateTo('dashboard');
+        }
+      });
+
+      // Initial render
+      handleHashChange();
+
+      console.log('Relationship CRM initialized');
+      console.log('Contacts:', AppState.contacts.length);
+      console.log('Interactions:', AppState.interactions.length);
+      console.log('Keyboard shortcuts:');
+      console.log('  - ESC: Close modal');
+      console.log('  - Ctrl/Cmd + K: Search contacts');
+      console.log('  - Ctrl/Cmd + N: New contact');
+      console.log('  - Ctrl/Cmd + H: Dashboard');
+      console.log('  - window.loadSampleData(): Load sample data for testing');
+    }
+
+    // Start the app when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
 </body>
 </html>
