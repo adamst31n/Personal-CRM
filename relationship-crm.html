@@ -629,6 +629,9 @@
       <button class="nav-button" data-route="add-contact">
         <span class="nav-label">Add Contact</span>
       </button>
+      <button class="nav-button" data-route="settings">
+        <span class="nav-label">Settings</span>
+      </button>
     </div>
   </nav>
 
@@ -1037,7 +1040,8 @@
       'activity': renderActivity,
       'add-contact': renderContactForm,
       'contact': renderContactDetail,
-      'edit-contact': renderContactForm
+      'edit-contact': renderContactForm,
+      'settings': renderSettings
     };
 
     function navigateTo(route, params = {}) {
@@ -1108,6 +1112,14 @@
         return interactionDate >= sevenDaysAgo && !isFutureDate(i.date);
       }).length;
 
+      // Calculate YTD (year-to-date) interactions
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+      startOfYear.setHours(0, 0, 0, 0);
+      const ytdInteractions = AppState.interactions.filter(i => {
+        const interactionDate = new Date(i.date);
+        return interactionDate >= startOfYear && !isFutureDate(i.date);
+      }).length;
+
       // Split interactions into past (recent) and future (upcoming)
       const today = new Date().toISOString().split('T')[0];
       const recentInteractions = AppState.interactions
@@ -1147,18 +1159,25 @@
             <!-- Quick Stats Card -->
             <div class="card" style="margin-bottom: 0;">
               <h2 class="mb-md" style="font-size: 1.1rem;">Quick Stats</h2>
+              <!-- Contacts -->
+              <div style="margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border-light);">
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
+                <div class="text-muted text-small">Total Contacts</div>
+              </div>
+              <!-- Interactions breakdown -->
+              <div class="text-muted text-small" style="margin-bottom: 0.5rem; font-weight: 600;">Interactions</div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                 <div>
-                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
-                  <div class="text-muted text-small">Contacts</div>
-                </div>
-                <div>
                   <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</div>
-                  <div class="text-muted text-small">Interactions</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Total</div>
                 </div>
                 <div>
-                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-success);">${l7dInteractions}</div>
-                  <div class="text-muted text-small">L7D</div>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${ytdInteractions}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">YTD</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${l7dInteractions}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">L7D</div>
                 </div>
               </div>
             </div>
@@ -1167,10 +1186,10 @@
             <div class="card" style="margin-bottom: 0;">
               <h2 class="mb-md" style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
                 <span style="font-size: 1.25rem;">🎂</span>
-                <span style="font-size: 1rem;">Upcoming Birthdays</span>
+                <span>Upcoming Birthdays</span>
               </h2>
               ${(() => {
-                const nextBirthdays = getUpcomingBirthdays(365).slice(0, 5);
+                const nextBirthdays = getUpcomingBirthdays(365).slice(0, 3);
                 if (nextBirthdays.length === 0) {
                   return '<p class="text-muted text-small">No birthdays on file</p>';
                 }
@@ -1348,32 +1367,6 @@
               </div>
             </div>
           ` : ''}
-
-          <!-- Data Management -->
-          <div class="card">
-            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="background: #F3F4F6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">SETTINGS</span>
-              <span>Data Management</span>
-            </h2>
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <button class="btn btn-secondary btn-block" onclick="exportData()">
-                Export JSON (Full Backup)
-              </button>
-              <button class="btn btn-secondary btn-block" onclick="exportCSV()">
-                Export CSV (Contacts Only)
-              </button>
-              <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-file').click()">
-                Import Data (Restore)
-              </button>
-              <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
-              <button class="btn btn-danger btn-block" onclick="clearAllData()">
-                Clear All Data
-              </button>
-            </div>
-            <p class="text-muted text-small" style="margin-top: 1rem;">
-              Export to JSON for full backup with interactions. Export to CSV for spreadsheet-compatible contact list.
-            </p>
-          </div>
         </div>
       `;
     }
@@ -1381,13 +1374,14 @@
     function getInteractionIcon(type) {
       const icons = {
         'Call': '☎️',
-        'Text': '💬',
+        'Text': '📱',
         'Email': '✉️',
         'In-Person': '🤝',
-        'Video': '📹',
-        'Social': '📱'
+        'Video': '🖥️',
+        'LinkedIn': '🤵',
+        'Social': '🤵' // Legacy support
       };
-      return icons[type] || '💬';
+      return icons[type] || '📱';
     }
 
     function getInteractionIconClass(type) {
@@ -1397,7 +1391,8 @@
         'Email': 'icon-email',
         'In-Person': 'icon-inperson',
         'Video': 'icon-video',
-        'Social': 'icon-social'
+        'LinkedIn': 'icon-linkedin',
+        'Social': 'icon-linkedin' // Legacy support
       };
       return iconClasses[type] || 'icon-text';
     }
@@ -1409,7 +1404,8 @@
         'Email': 'E',
         'In-Person': 'P',
         'Video': 'V',
-        'Social': 'S'
+        'LinkedIn': 'L',
+        'Social': 'L' // Legacy support
       };
       return iconTexts[type] || 'I';
     }
@@ -1525,26 +1521,24 @@
             />
           </div>
 
-          <!-- Filter Chips (Multi-select) -->
-          <div class="filter-chips">
-            ${relationshipTypes.map(type => `
-              <button
-                type="button"
-                class="filter-chip ${contactFilterState.filterTypes.includes(type) ? 'selected' : ''}"
-                onclick="toggleFilterType('${type}')"
-              >${type}</button>
-            `).join('')}
-          </div>
-
-          <!-- Sort Dropdown -->
-          <div class="form-group mb-md">
-            <select class="form-select" onchange="renderContactList(undefined, undefined, this.value)">
+          <!-- Filter Chips and Sort Dropdown -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <div class="filter-chips" style="margin-bottom: 0; flex: 1; min-width: 0;">
+              ${relationshipTypes.map(type => `
+                <button
+                  type="button"
+                  class="filter-chip ${contactFilterState.filterTypes.includes(type) ? 'selected' : ''}"
+                  onclick="toggleFilterType('${type}')"
+                >${type}</button>
+              `).join('')}
+            </div>
+            <select class="form-select" style="width: auto; min-width: 160px; min-height: 40px; padding: 0.5rem 2.25rem 0.5rem 0.75rem;" onchange="renderContactList(undefined, undefined, this.value)">
               <option value="name-asc" ${currentSort === 'name-asc' ? 'selected' : ''}>Name: A→Z</option>
               <option value="name-desc" ${currentSort === 'name-desc' ? 'selected' : ''}>Name: Z→A</option>
-              <option value="lastContacted-desc" ${currentSort === 'lastContacted-desc' ? 'selected' : ''}>Last Contact: Oldest</option>
-              <option value="lastContacted-asc" ${currentSort === 'lastContacted-asc' ? 'selected' : ''}>Last Contact: Recent</option>
-              <option value="relationship-asc" ${currentSort === 'relationship-asc' ? 'selected' : ''}>Type: Family First</option>
-              <option value="relationship-desc" ${currentSort === 'relationship-desc' ? 'selected' : ''}>Type: Acquaintance First</option>
+              <option value="lastContacted-desc" ${currentSort === 'lastContacted-desc' ? 'selected' : ''}>Oldest First</option>
+              <option value="lastContacted-asc" ${currentSort === 'lastContacted-asc' ? 'selected' : ''}>Recent First</option>
+              <option value="relationship-asc" ${currentSort === 'relationship-asc' ? 'selected' : ''}>Family First</option>
+              <option value="relationship-desc" ${currentSort === 'relationship-desc' ? 'selected' : ''}>Acquaintance First</option>
             </select>
           </div>
 
@@ -2160,15 +2154,15 @@
 
       const interactionTypes = [
         { type: 'Call', icon: '☎️' },
-        { type: 'Text', icon: '💬' },
+        { type: 'Text', icon: '📱' },
         { type: 'Email', icon: '✉️' },
         { type: 'In-Person', icon: '🤝' },
-        { type: 'Video', icon: '📹' },
-        { type: 'Social', icon: '📱' }
+        { type: 'Video', icon: '🖥️' },
+        { type: 'LinkedIn', icon: '🤵' }
       ];
 
       modalContent.innerHTML = `
-        <p class="text-muted mb-md">with ${escapeHtml(contact.name)}</p>
+        <p class="text-muted mb-md">with ${escapeHtml(getFullName(contact))}</p>
 
         <!-- Date Selection -->
         <div class="form-group">
@@ -2244,11 +2238,11 @@
 
       const interactionTypes = [
         { type: 'Call', icon: '☎️' },
-        { type: 'Text', icon: '💬' },
+        { type: 'Text', icon: '📱' },
         { type: 'Email', icon: '✉️' },
         { type: 'In-Person', icon: '🤝' },
-        { type: 'Video', icon: '📹' },
-        { type: 'Social', icon: '📱' }
+        { type: 'Video', icon: '🖥️' },
+        { type: 'LinkedIn', icon: '🤵' }
       ];
 
       modalContent.innerHTML = `
@@ -2367,12 +2361,15 @@
         return;
       }
 
+      // Read date directly from input to ensure we get the user's selected value
+      const dateInput = document.getElementById('interaction-date');
+      const selectedDate = dateInput ? dateInput.value : interactionModalState.selectedDate;
       const notes = document.getElementById('interaction-notes')?.value || '';
 
       if (interactionModalState.editingId) {
         // Edit existing interaction
         updateInteraction(interactionModalState.editingId, {
-          date: interactionModalState.selectedDate,
+          date: selectedDate,
           type: interactionModalState.selectedType,
           notes: notes
         });
@@ -2381,7 +2378,7 @@
         // Add new interaction
         addInteraction({
           contactId: interactionModalState.contactId,
-          date: interactionModalState.selectedDate,
+          date: selectedDate,
           type: interactionModalState.selectedType,
           notes: notes
         });
@@ -2571,6 +2568,79 @@
 
       showToast('All data cleared');
       navigateTo('dashboard');
+    }
+
+    /* ===== SETTINGS VIEW ===== */
+
+    function renderSettings() {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <div class="view">
+          <div class="view-header">
+            <h1 class="view-title">Settings</h1>
+          </div>
+
+          <!-- Data Management -->
+          <div class="card mb-lg">
+            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="background: #F3F4F6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">DATA</span>
+              <span>Data Management</span>
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <button class="btn btn-secondary btn-block" onclick="exportData()">
+                Export JSON (Full Backup)
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="exportCSV()">
+                Export CSV (Contacts Only)
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-file').click()">
+                Import Data (Restore)
+              </button>
+              <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
+            </div>
+            <p class="text-muted text-small" style="margin-top: 1rem;">
+              Export to JSON for full backup with interactions. Export to CSV for spreadsheet-compatible contact list. Import from JSON to restore a backup.
+            </p>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="card" style="border: 1px solid var(--color-danger); border-left: 3px solid var(--color-danger);">
+            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); color: #991B1B; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">DANGER</span>
+              <span>Danger Zone</span>
+            </h2>
+            <p class="text-muted text-small mb-md">
+              This action cannot be undone. Make sure to export a backup first.
+            </p>
+            <button class="btn btn-danger btn-block" onclick="clearAllData()">
+              Clear All Data
+            </button>
+          </div>
+
+          <!-- App Info -->
+          <div class="card mt-lg" style="background: var(--color-background);">
+            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="background: #E0E7FF; color: #3730A3; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">INFO</span>
+              <span>About</span>
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Total Contacts</span>
+                <span style="font-weight: 600;">${AppState.contacts.length}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Total Interactions</span>
+                <span style="font-weight: 600;">${AppState.interactions.length}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Version</span>
+                <span style="font-weight: 600;">1.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     /* ===== SAMPLE DATA (for testing) ===== */
