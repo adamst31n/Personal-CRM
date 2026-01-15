@@ -1099,8 +1099,42 @@
 
       const totalContacts = AppState.contacts.length;
       const totalInteractions = AppState.interactions.length;
-      const priorityContacts = AppState.contacts.filter(c => c.priority);
-      const needsAttention = getNeedsAttention();
+
+      // Priority contacts sorted by longest time since last contact
+      const priorityContacts = AppState.contacts
+        .filter(c => c.priority)
+        .sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) ?? 9999;
+          const daysB = getDaysSinceLastContact(b.id) ?? 9999;
+          return daysB - daysA;
+        });
+
+      // Needs Attention - Professional (60+ days)
+      const needsAttentionProfessional = AppState.contacts
+        .filter(c => {
+          if (c.relationshipType !== 'Professional') return false;
+          const days = getDaysSinceLastContact(c.id);
+          return days === null || days >= 60;
+        })
+        .sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) ?? 9999;
+          const daysB = getDaysSinceLastContact(b.id) ?? 9999;
+          return daysB - daysA;
+        });
+
+      // Needs Attention - Personal (Close Friend or Friend, 30+ days)
+      const needsAttentionPersonal = AppState.contacts
+        .filter(c => {
+          if (c.relationshipType !== 'Close Friend' && c.relationshipType !== 'Friend') return false;
+          const days = getDaysSinceLastContact(c.id);
+          return days === null || days >= 30;
+        })
+        .sort((a, b) => {
+          const daysA = getDaysSinceLastContact(a.id) ?? 9999;
+          const daysB = getDaysSinceLastContact(b.id) ?? 9999;
+          return daysB - daysA;
+        });
+
       const upcomingBirthdays = getUpcomingBirthdays(30);
 
       // Calculate L7D (last 7 days) interactions
@@ -1248,37 +1282,78 @@
           ` : ''}
 
           <!-- Needs Attention -->
-          ${needsAttention.length > 0 ? `
+          ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? `
             <div class="card mb-lg" style="border-left: 3px solid var(--color-warning);">
               <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
                 <span style="background: #FEF3C7; color: #92400E; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">ATTENTION</span>
-                <span>Needs Attention (${needsAttention.length})</span>
+                <span>Needs Attention</span>
               </h2>
-              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                ${needsAttention.slice(0, 5).map(contact => {
-                  const days = getDaysSinceLastContact(contact.id);
-                  const status = getContactStatus(contact.id);
-                  const statusText = days === null ? 'Never contacted' : `${days} days ago`;
-                  return `
-                    <div class="card card-clickable" style="padding: 0.75rem; margin: 0; border-left: 3px solid var(--color-${status});" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                      <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                          <div style="font-weight: 600;">${escapeHtml(getFullName(contact))}</div>
-                          <div class="text-muted text-small">${contact.relationshipType}</div>
-                        </div>
-                        <div class="text-small" style="color: var(--color-${status}); font-weight: 600;">
-                          ${statusText}
-                        </div>
-                      </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Professional Column -->
+                <div style="${needsAttentionProfessional.length === 0 ? 'opacity: 0.5;' : ''}">
+                  <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary);">
+                    Professional ${needsAttentionProfessional.length > 0 ? `(${needsAttentionProfessional.length})` : ''}
+                  </h3>
+                  ${needsAttentionProfessional.length > 0 ? `
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                      ${needsAttentionProfessional.slice(0, 4).map(contact => {
+                        const days = getDaysSinceLastContact(contact.id);
+                        const status = getContactStatus(contact.id);
+                        const statusText = days === null ? 'Never' : `${days}d`;
+                        return `
+                          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <div style="min-width: 0; flex: 1;">
+                              <div style="font-weight: 600; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
+                            </div>
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-${status}); margin-left: 0.5rem; white-space: nowrap;">
+                              ${statusText}
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
                     </div>
-                  `;
-                }).join('')}
+                    ${needsAttentionProfessional.length > 4 ? `
+                      <button class="btn btn-secondary btn-block" style="margin-top: 0.75rem; padding: 0.5rem; font-size: 0.8rem;" onclick="navigateTo('contacts')">
+                        View All ${needsAttentionProfessional.length}
+                      </button>
+                    ` : ''}
+                  ` : `
+                    <p class="text-muted text-small">All caught up!</p>
+                  `}
+                </div>
+                <!-- Personal Column -->
+                <div style="${needsAttentionPersonal.length === 0 ? 'opacity: 0.5;' : ''}">
+                  <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary);">
+                    Personal ${needsAttentionPersonal.length > 0 ? `(${needsAttentionPersonal.length})` : ''}
+                  </h3>
+                  ${needsAttentionPersonal.length > 0 ? `
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                      ${needsAttentionPersonal.slice(0, 4).map(contact => {
+                        const days = getDaysSinceLastContact(contact.id);
+                        const status = getContactStatus(contact.id);
+                        const statusText = days === null ? 'Never' : `${days}d`;
+                        return `
+                          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <div style="min-width: 0; flex: 1;">
+                              <div style="font-weight: 600; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
+                            </div>
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-${status}); margin-left: 0.5rem; white-space: nowrap;">
+                              ${statusText}
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                    ${needsAttentionPersonal.length > 4 ? `
+                      <button class="btn btn-secondary btn-block" style="margin-top: 0.75rem; padding: 0.5rem; font-size: 0.8rem;" onclick="navigateTo('contacts')">
+                        View All ${needsAttentionPersonal.length}
+                      </button>
+                    ` : ''}
+                  ` : `
+                    <p class="text-muted text-small">All caught up!</p>
+                  `}
+                </div>
               </div>
-              ${needsAttention.length > 5 ? `
-                <button class="btn btn-secondary btn-block mt-md" onclick="navigateTo('contacts')">
-                  View All ${needsAttention.length} Contacts
-                </button>
-              ` : ''}
             </div>
           ` : ''}
 
