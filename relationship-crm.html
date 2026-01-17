@@ -767,7 +767,7 @@
       /* New dashboard grid with Activity spanning */
       .dashboard-new-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr minmax(280px, 1fr);
+        grid-template-columns: 0.85fr 1.15fr minmax(280px, 1fr);
         grid-template-rows: auto auto;
         gap: var(--spacing-lg);
       }
@@ -1145,7 +1145,7 @@
 
     function getInteractionsByContact(contactId) {
       return AppState.interactions
-        .filter(i => i.contactId === contactId)
+        .filter(i => i.contactId === contactId || (i.taggedContacts && i.taggedContacts.includes(contactId)))
         .sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
@@ -1153,6 +1153,7 @@
       const interaction = {
         id: generateUUID(),
         contactId: interactionData.contactId,
+        taggedContacts: interactionData.taggedContacts || [],
         date: interactionData.date,
         type: interactionData.type,
         notes: interactionData.notes || '',
@@ -1161,6 +1162,12 @@
 
       AppState.interactions.push(interaction);
       updateContactLastInteraction(interaction.contactId);
+      // Also update lastContactedAt for tagged contacts
+      if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+        interaction.taggedContacts.forEach(taggedId => {
+          updateContactLastInteraction(taggedId);
+        });
+      }
       saveState();
       return interaction;
     }
@@ -1170,12 +1177,31 @@
       if (index === -1) return null;
 
       const interaction = AppState.interactions[index];
+      const oldTaggedContacts = interaction.taggedContacts || [];
+      const newTaggedContacts = updates.taggedContacts || oldTaggedContacts;
+
       AppState.interactions[index] = {
         ...interaction,
         ...updates
       };
 
+      // Update primary contact's last interaction
       updateContactLastInteraction(interaction.contactId);
+
+      // Find contacts that were removed from tags and recalculate their lastContactedAt
+      const removedContacts = oldTaggedContacts.filter(id => !newTaggedContacts.includes(id));
+      const addedContacts = newTaggedContacts.filter(id => !oldTaggedContacts.includes(id));
+
+      // Recalculate for removed contacts (they may have lost their most recent interaction)
+      removedContacts.forEach(contactId => {
+        updateContactLastInteraction(contactId);
+      });
+
+      // Update for newly added contacts
+      addedContacts.forEach(contactId => {
+        updateContactLastInteraction(contactId);
+      });
+
       saveState();
       return AppState.interactions[index];
     }
@@ -1184,8 +1210,16 @@
       const interaction = AppState.interactions.find(i => i.id === id);
       if (!interaction) return false;
 
+      const taggedContacts = interaction.taggedContacts || [];
+
       AppState.interactions = AppState.interactions.filter(i => i.id !== id);
       updateContactLastInteraction(interaction.contactId);
+
+      // Also recalculate lastContactedAt for any tagged contacts
+      taggedContacts.forEach(contactId => {
+        updateContactLastInteraction(contactId);
+      });
+
       saveState();
       return true;
     }
@@ -1198,12 +1232,28 @@
         return;
       }
 
-      const mostRecent = interactions.reduce((latest, current) => {
+      // Only consider past interactions (not future planned ones)
+      const pastInteractions = interactions.filter(i => !isFutureDate(i.date));
+
+      if (pastInteractions.length === 0) {
+        updateContact(contactId, { lastContactedAt: null });
+        return;
+      }
+
+      const mostRecent = pastInteractions.reduce((latest, current) => {
         const currentDate = parseLocalDate(current.date);
         return currentDate > latest ? currentDate : latest;
       }, new Date(0));
 
       updateContact(contactId, { lastContactedAt: mostRecent.getTime() });
+    }
+
+    // Recalculate lastContactedAt for all contacts (fixes stale data from before tag tracking)
+    function recalculateAllLastContactedDates() {
+      AppState.contacts.forEach(contact => {
+        updateContactLastInteraction(contact.id);
+      });
+      saveState();
     }
 
     /* ===== CALCULATION FUNCTIONS ===== */
@@ -1352,6 +1402,8 @@
       const app = document.getElementById('app');
 
       const totalContacts = AppState.contacts.length;
+      const professionalContacts = AppState.contacts.filter(c => c.relationshipType === 'Professional').length;
+      const personalContacts = AppState.contacts.filter(c => c.relationshipType !== 'Professional').length;
       const totalInteractions = AppState.interactions.length;
 
       // Priority contacts sorted by longest time since last contact
@@ -1452,13 +1504,13 @@
                 <span>Contact ASAP${priorityContacts.length > 0 ? ` (${priorityContacts.length})` : ''}</span>
               </h2>
               ${priorityContacts.length > 0 ? `
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
                   ${priorityContacts.map(contact => {
                     const days = getDaysSinceLastContact(contact.id);
                     const status = getContactStatus(contact.id);
                     const statusText = days === null ? 'Never contacted' : `${days} days ago`;
                     return `
-                      <div class="card card-clickable" style="padding: 0.5rem 0.75rem; margin: 0; border-left: 3px solid var(--color-${status});" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div class="card card-clickable" style="padding: 0.5rem 0.75rem; margin: 0; border-left: 3px solid var(--color-${status}); flex-shrink: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                           <div>
                             <div style="font-weight: 600; font-size: 0.8125rem;">${escapeHtml(getFullName(contact))}</div>
@@ -1486,13 +1538,13 @@
                       Professional ${needsAttentionProfessional.length > 0 ? `(${needsAttentionProfessional.length})` : ''}
                     </h3>
                     ${needsAttentionProfessional.length > 0 ? `
-                      <div style="display: flex; flex-direction: column; gap: 0.375rem;">
-                        ${needsAttentionProfessional.slice(0, 4).map(contact => {
+                      <div style="display: flex; flex-direction: column; gap: 0.375rem; max-height: 160px; overflow-y: auto; padding-right: 0.5rem;">
+                        ${needsAttentionProfessional.map(contact => {
                           const days = getDaysSinceLastContact(contact.id);
                           const status = getContactStatus(contact.id);
                           const statusText = days === null ? 'Never' : `${days}d`;
                           return `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer; flex-shrink: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
                               <div style="min-width: 0; flex: 1;">
                                 <div style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
                               </div>
@@ -1503,11 +1555,6 @@
                           `;
                         }).join('')}
                       </div>
-                      ${needsAttentionProfessional.length > 4 ? `
-                        <button class="btn btn-secondary btn-block" style="margin-top: 0.5rem; padding: 0.375rem; font-size: 0.8125rem;" onclick="navigateTo('contacts')">
-                          View All ${needsAttentionProfessional.length}
-                        </button>
-                      ` : ''}
                     ` : '<p class="text-muted" style="font-size: 0.8125rem;">All caught up!</p>'}
                   </div>
                   <!-- Personal Column -->
@@ -1516,13 +1563,13 @@
                       Personal ${needsAttentionPersonal.length > 0 ? `(${needsAttentionPersonal.length})` : ''}
                     </h3>
                     ${needsAttentionPersonal.length > 0 ? `
-                      <div style="display: flex; flex-direction: column; gap: 0.375rem;">
-                        ${needsAttentionPersonal.slice(0, 4).map(contact => {
+                      <div style="display: flex; flex-direction: column; gap: 0.375rem; max-height: 160px; overflow-y: auto; padding-right: 0.5rem;">
+                        ${needsAttentionPersonal.map(contact => {
                           const days = getDaysSinceLastContact(contact.id);
                           const status = getContactStatus(contact.id);
                           const statusText = days === null ? 'Never' : `${days}d`;
                           return `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer; flex-shrink: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
                               <div style="min-width: 0; flex: 1;">
                                 <div style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
                               </div>
@@ -1533,11 +1580,6 @@
                           `;
                         }).join('')}
                       </div>
-                      ${needsAttentionPersonal.length > 4 ? `
-                        <button class="btn btn-secondary btn-block" style="margin-top: 0.5rem; padding: 0.375rem; font-size: 0.8125rem;" onclick="navigateTo('contacts')">
-                          View All ${needsAttentionPersonal.length}
-                        </button>
-                      ` : ''}
                     ` : '<p class="text-muted text-small">All caught up!</p>'}
                   </div>
                 </div>
@@ -1557,17 +1599,29 @@
                       ${upcomingInteractions.slice(0, 5).map(interaction => {
                         const contact = getContact(interaction.contactId);
                         const notePreview = interaction.notes ? (interaction.notes.length > 60 ? interaction.notes.substring(0, 60) + '...' : interaction.notes) : '';
+                        // Build participant list including tagged contacts
+                        const participants = [getFullName(contact)];
+                        if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+                          interaction.taggedContacts.forEach(taggedId => {
+                            const taggedContact = getContact(taggedId);
+                            if (taggedContact) participants.push(getFullName(taggedContact));
+                          });
+                        }
+                        const participantText = participants.length > 2
+                          ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
+                          : participants.map(n => escapeHtml(n)).join(' & ');
+                        const fullParticipantText = participants.map(n => escapeHtml(n)).join(', ');
                         return `
                           <div class="activity-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: rgba(37, 99, 235, 0.05); border-radius: 0.5rem; cursor: pointer; border-left: 2px dashed var(--color-primary);" onclick="navigateTo('contact', {id: '${contact.id}'})">
                             <div style="min-width: 0; flex: 1;">
-                              <div style="font-weight: 600; font-size: 0.8125rem; color: var(--color-primary);">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                              <div style="font-weight: 600; font-size: 0.8125rem; color: var(--color-primary);">${interaction.type} with ${participantText}</div>
                               <div class="text-muted" style="font-size: 0.8125rem;">${formatDate(interaction.date)}</div>
                             </div>
-                            ${notePreview ? `
+                            ${notePreview || participants.length > 2 ? `
                               <div class="activity-tooltip">
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${fullParticipantText}</div>
                                 <div class="text-muted" style="margin-bottom: 0.5rem;">${formatDate(interaction.date)}</div>
-                                <div>${escapeHtml(interaction.notes)}</div>
+                                ${interaction.notes ? `<div>${escapeHtml(interaction.notes)}</div>` : ''}
                               </div>
                             ` : ''}
                           </div>
@@ -1586,17 +1640,29 @@
                         const contact = getContact(interaction.contactId);
                         const status = getContactStatus(contact.id);
                         const notePreview = interaction.notes ? (interaction.notes.length > 60 ? interaction.notes.substring(0, 60) + '...' : interaction.notes) : '';
+                        // Build participant list including tagged contacts
+                        const participants = [getFullName(contact)];
+                        if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+                          interaction.taggedContacts.forEach(taggedId => {
+                            const taggedContact = getContact(taggedId);
+                            if (taggedContact) participants.push(getFullName(taggedContact));
+                          });
+                        }
+                        const participantText = participants.length > 2
+                          ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
+                          : participants.map(n => escapeHtml(n)).join(' & ');
+                        const fullParticipantText = participants.map(n => escapeHtml(n)).join(', ');
                         return `
                           <div class="activity-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer;" onclick="navigateTo('contact', {id: '${contact.id}'})">
                             <div style="min-width: 0; flex: 1;">
-                              <div style="font-weight: 600; font-size: 0.8125rem;">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                              <div style="font-weight: 600; font-size: 0.8125rem;">${interaction.type} with ${participantText}</div>
                               <div class="text-muted" style="font-size: 0.8125rem;">${formatRelativeDate(interaction.date)}</div>
                             </div>
-                            ${notePreview ? `
+                            ${notePreview || participants.length > 2 ? `
                               <div class="activity-tooltip">
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${escapeHtml(getFullName(contact))}</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${fullParticipantText}</div>
                                 <div class="text-muted" style="margin-bottom: 0.5rem;">${formatRelativeDate(interaction.date)}</div>
-                                <div>${escapeHtml(interaction.notes)}</div>
+                                ${interaction.notes ? `<div>${escapeHtml(interaction.notes)}</div>` : ''}
                               </div>
                             ` : ''}
                           </div>
@@ -1651,8 +1717,20 @@
               <h2 class="section-title">Quick Stats</h2>
               <!-- Contacts -->
               <div style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
-                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
-                <div class="text-muted" style="font-size: 0.8125rem;">Total Contacts</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                  <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
+                    <div class="text-muted" style="font-size: 0.8125rem;">Total Contacts</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${professionalContacts}</div>
+                    <div class="text-muted" style="font-size: 0.8125rem;">Professional</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${personalContacts}</div>
+                    <div class="text-muted" style="font-size: 0.8125rem;">Personal</div>
+                  </div>
+                </div>
               </div>
               <!-- Interactions breakdown -->
               <div class="text-muted" style="font-size: 0.8125rem; margin-bottom: 0.375rem; font-weight: 600;">Interactions</div>
@@ -2121,6 +2199,22 @@
                   const isFuture = isFutureDate(interaction.date);
                   const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
                   const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                  // Check if this contact was tagged (vs being the primary contact)
+                  const isTagged = interaction.contactId !== contact.id;
+                  const primaryContact = isTagged ? getContact(interaction.contactId) : null;
+                  // Get all participants for display
+                  const allParticipants = [];
+                  if (isTagged && primaryContact) {
+                    allParticipants.push(getFullName(primaryContact));
+                  }
+                  if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+                    interaction.taggedContacts.forEach(taggedId => {
+                      if (taggedId !== contact.id) {
+                        const taggedContact = getContact(taggedId);
+                        if (taggedContact) allParticipants.push(getFullName(taggedContact));
+                      }
+                    });
+                  }
                   return `
                     <div class="card" style="padding: 1rem; margin: 0; position: relative; ${borderStyle}">
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
@@ -2139,6 +2233,7 @@
                         </div>
                       </div>
                       <div class="text-muted text-small" style="${isFuture ? 'color: var(--color-primary); font-weight: 500;' : ''}">${formatDate(interaction.date)} (${formatRelativeDate(interaction.date)})</div>
+                      ${allParticipants.length > 0 ? `<div style="margin-top: 0.375rem; font-size: 0.75rem; color: var(--color-text-secondary);">Also with: ${allParticipants.map(name => escapeHtml(name)).join(', ')}</div>` : ''}
                       ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtml(interaction.notes)}</div>` : ''}
                     </div>
                   `;
@@ -2458,7 +2553,8 @@
     let interactionModalState = {
       contactId: null,
       selectedType: null,
-      selectedDate: new Date().toISOString().split('T')[0]
+      selectedDate: new Date().toISOString().split('T')[0],
+      taggedContacts: []
     };
 
     function openInteractionModal(contactId) {
@@ -2468,7 +2564,8 @@
       interactionModalState = {
         contactId: contactId,
         selectedType: null,
-        selectedDate: new Date().toISOString().split('T')[0]
+        selectedDate: new Date().toISOString().split('T')[0],
+        taggedContacts: []
       };
 
       const modal = document.getElementById('interaction-modal');
@@ -2482,6 +2579,11 @@
         { type: 'Video', icon: '🖥️' },
         { type: 'LinkedIn', icon: '🤵' }
       ];
+
+      // Get other contacts for tagging (exclude current contact)
+      const otherContacts = AppState.contacts
+        .filter(c => c.id !== contactId)
+        .sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
 
       modalContent.innerHTML = `
         <p class="text-muted mb-md">with ${escapeHtml(getFullName(contact))}</p>
@@ -2521,6 +2623,24 @@
           </div>
         </div>
 
+        <!-- Tag Other Contacts -->
+        ${otherContacts.length > 0 ? `
+          <div class="form-group">
+            <label class="form-label">Tag other contacts (optional)</label>
+            <div id="tagged-contacts-display" style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 0;"></div>
+            <select
+              id="tag-contact-select"
+              class="form-select"
+              onchange="addTaggedContact(this.value); this.value = '';"
+            >
+              <option value="">+ Add another person...</option>
+              ${otherContacts.map(c => `
+                <option value="${c.id}">${escapeHtml(getFullName(c))}</option>
+              `).join('')}
+            </select>
+          </div>
+        ` : ''}
+
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">Notes (optional)</label>
@@ -2550,7 +2670,8 @@
         contactId: interaction.contactId,
         selectedType: interaction.type,
         selectedDate: interaction.date,
-        editingId: interactionId
+        editingId: interactionId,
+        taggedContacts: interaction.taggedContacts ? [...interaction.taggedContacts] : []
       };
 
       const modal = document.getElementById('interaction-modal');
@@ -2566,6 +2687,11 @@
         { type: 'Video', icon: '🖥️' },
         { type: 'LinkedIn', icon: '🤵' }
       ];
+
+      // Get other contacts for tagging (exclude current contact)
+      const otherContacts = AppState.contacts
+        .filter(c => c.id !== interaction.contactId)
+        .sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
 
       modalContent.innerHTML = `
         <p class="text-muted mb-md">with ${escapeHtml(getFullName(contact))}</p>
@@ -2600,6 +2726,24 @@
           </div>
         </div>
 
+        <!-- Tag Other Contacts -->
+        ${otherContacts.length > 0 ? `
+          <div class="form-group">
+            <label class="form-label">Tag other contacts (optional)</label>
+            <div id="tagged-contacts-display" style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 0;"></div>
+            <select
+              id="tag-contact-select"
+              class="form-select"
+              onchange="addTaggedContact(this.value); this.value = '';"
+            >
+              <option value="">+ Add another person...</option>
+              ${otherContacts.map(c => `
+                <option value="${c.id}" ${interactionModalState.taggedContacts.includes(c.id) ? 'style="display: none;"' : ''}>${escapeHtml(getFullName(c))}</option>
+              `).join('')}
+            </select>
+          </div>
+        ` : ''}
+
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">Notes (optional)</label>
@@ -2615,6 +2759,9 @@
         <button class="btn btn-block" onclick="handleInteractionSubmit()">Save Changes</button>
       `;
 
+      // Display existing tagged contacts
+      updateTaggedContactsDisplay();
+
       modal.classList.add('active');
     }
 
@@ -2626,7 +2773,7 @@
       const modalTitle = document.querySelector('.modal-title');
       modalTitle.textContent = 'Log Interaction';
 
-      interactionModalState = { contactId: null, selectedType: null, selectedDate: new Date().toISOString().split('T')[0] };
+      interactionModalState = { contactId: null, selectedType: null, selectedDate: new Date().toISOString().split('T')[0], taggedContacts: [] };
     }
 
     function selectQuickDate(option) {
@@ -2677,6 +2824,43 @@
       document.querySelector(`.interaction-type-btn[data-type="${type}"]`)?.classList.add('selected');
     }
 
+    function addTaggedContact(contactId) {
+      if (!contactId || interactionModalState.taggedContacts.includes(contactId)) return;
+      interactionModalState.taggedContacts.push(contactId);
+      updateTaggedContactsDisplay();
+      // Hide selected contact from dropdown
+      const option = document.querySelector(`#tag-contact-select option[value="${contactId}"]`);
+      if (option) option.style.display = 'none';
+    }
+
+    function removeTaggedContact(contactId) {
+      interactionModalState.taggedContacts = interactionModalState.taggedContacts.filter(id => id !== contactId);
+      updateTaggedContactsDisplay();
+      // Show contact in dropdown again
+      const option = document.querySelector(`#tag-contact-select option[value="${contactId}"]`);
+      if (option) option.style.display = '';
+    }
+
+    function updateTaggedContactsDisplay() {
+      const container = document.getElementById('tagged-contacts-display');
+      if (!container) return;
+
+      container.innerHTML = interactionModalState.taggedContacts.map(contactId => {
+        const contact = getContact(contactId);
+        if (!contact) return '';
+        return `
+          <span style="display: inline-flex; align-items: center; gap: 0.25rem; background: var(--color-primary); color: white; padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.75rem;">
+            ${escapeHtml(getFullName(contact))}
+            <button
+              type="button"
+              onclick="removeTaggedContact('${contactId}')"
+              style="background: none; border: none; color: white; cursor: pointer; padding: 0; margin-left: 0.125rem; font-size: 0.875rem; line-height: 1;"
+            >&times;</button>
+          </span>
+        `;
+      }).join('');
+    }
+
     function handleInteractionSubmit() {
       if (!interactionModalState.selectedType) {
         showToast('Please select an interaction type', 'error');
@@ -2693,18 +2877,21 @@
         updateInteraction(interactionModalState.editingId, {
           date: selectedDate,
           type: interactionModalState.selectedType,
-          notes: notes
+          notes: notes,
+          taggedContacts: interactionModalState.taggedContacts || []
         });
         showToast('Interaction updated');
       } else {
         // Add new interaction
         addInteraction({
           contactId: interactionModalState.contactId,
+          taggedContacts: interactionModalState.taggedContacts || [],
           date: selectedDate,
           type: interactionModalState.selectedType,
           notes: notes
         });
-        showToast('Interaction logged');
+        const tagCount = interactionModalState.taggedContacts?.length || 0;
+        showToast(tagCount > 0 ? `Interaction logged with ${tagCount + 1} people` : 'Interaction logged');
       }
 
       closeInteractionModal();
@@ -3014,6 +3201,9 @@
     function init() {
       // Load data from localStorage
       loadState();
+
+      // Recalculate lastContactedAt for all contacts to fix any stale data
+      recalculateAllLastContactedDates();
 
       // Set up hash change listener
       window.addEventListener('hashchange', handleHashChange);
