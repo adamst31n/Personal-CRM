@@ -59,7 +59,7 @@
       --tap-target-min: 48px;
       --border-radius: 0.75rem;
       --border-radius-lg: 1rem;
-      --nav-height: 56px;
+      --nav-height: 64px;
 
       /* Shadows */
       --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -103,40 +103,102 @@
       border-left-width: 4px !important;
     }
 
-    /* Theme toggle button */
+    /* Dark mode header enhancements */
+    body.dark-mode .app-header {
+      background: linear-gradient(to bottom, var(--color-surface) 0%, var(--color-background) 100%);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .header-title {
+      color: #F9FAFB;
+    }
+
+    body.dark-mode .header-title:hover {
+      color: var(--color-primary-light);
+    }
+
+    body.dark-mode .header-btn:hover {
+      background: var(--color-surface-elevated);
+    }
+
+    body.dark-mode .header-btn-add {
+      box-shadow: 0 2px 8px rgba(96, 165, 250, 0.35);
+    }
+
+    body.dark-mode .header-btn-add:hover {
+      box-shadow: 0 6px 16px rgba(96, 165, 250, 0.45);
+    }
+
+    /* Dark mode page header */
+    body.dark-mode .page-header {
+      background: var(--color-surface-elevated);
+      background-image: linear-gradient(var(--color-surface-elevated), var(--color-surface-elevated)),
+                        linear-gradient(to right, var(--color-primary), var(--color-primary-light));
+      background-origin: padding-box, border-box;
+      background-clip: padding-box, border-box;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    body.dark-mode .view-title {
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Dark mode cards */
+    body.dark-mode .card {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .card:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Dark mode slide menu */
+    body.dark-mode .slide-menu {
+      box-shadow: 4px 0 32px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Theme toggle button (in header) */
     .theme-toggle {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 1000;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 1.125rem;
       cursor: pointer;
-      box-shadow: var(--shadow-md);
-      font-size: 1rem;
-      transition: background-color 0.2s, transform 0.2s;
+      border-radius: var(--border-radius);
+      transition: background-color 0.2s, color 0.2s;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .theme-toggle:hover {
-      transform: scale(1.1);
+      background: var(--color-background);
+      color: var(--color-text-primary);
     }
 
     /* ===== LAYOUT ===== */
     #app {
-      max-width: 768px;
-      margin: 0 auto;
       padding-top: var(--nav-height);
       min-height: 100vh;
+      background: var(--color-background);
+    }
+
+    .content-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .content-container {
+        padding: 0 2rem;
+      }
     }
 
     .view {
-      padding: var(--spacing-md);
       animation: fadeIn 0.2s ease-in;
     }
 
@@ -254,14 +316,19 @@
       border-radius: var(--border-radius-lg);
       padding: var(--spacing-lg);
       margin-bottom: var(--spacing-md);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--color-border);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
     }
 
     .card-clickable {
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .card-clickable:hover, .card-clickable:active {
@@ -384,29 +451,44 @@
     .icon-video { background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); color: #3730A3; }
     .icon-social { background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%); color: #9F1239; }
 
-    /* Header */
+    /* Page Header Section */
+    .page-header {
+      background: var(--color-surface);
+      padding: 1rem 0;
+      border-bottom: 2px solid transparent;
+      background-image: linear-gradient(var(--color-surface), var(--color-surface)),
+                        linear-gradient(to right, var(--color-primary), var(--color-primary-light));
+      background-origin: padding-box, border-box;
+      background-clip: padding-box, border-box;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      margin-bottom: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .page-header {
+        padding: 1.25rem 0;
+      }
+    }
+
     .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: var(--spacing-sm);
-      padding: 0 0 var(--spacing-sm) 0;
-      border-bottom: 2px solid var(--color-border-light);
-      position: relative;
+      margin-bottom: 0;
     }
 
     .view-title {
       font-size: 1.75rem;
       font-weight: 700;
       color: var(--color-text-primary);
-      letter-spacing: -0.025em;
-      text-align: center;
-      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      letter-spacing: -0.02em;
       margin: 0;
       line-height: 1.2;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (min-width: 768px) {
+      .view-title {
+        font-size: 2rem;
+      }
     }
 
     .section-title {
@@ -507,76 +589,244 @@
       font-size: 0.875rem;
     }
 
-    /* Top Navigation */
-    #top-nav {
+    /* Fixed Header */
+    .app-header {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       height: var(--nav-height);
-      background: var(--color-surface);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      background: linear-gradient(to bottom, var(--color-surface) 0%, var(--color-background) 100%);
+      border-bottom: 1px solid var(--color-border);
       display: flex;
-      justify-content: space-around;
       align-items: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      padding: 0 1.25rem;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       z-index: 100;
-      backdrop-filter: blur(12px);
-      background: rgba(255, 255, 255, 0.98);
     }
 
-    .nav-container {
-      max-width: 768px;
-      margin: 0 auto;
-      width: 100%;
+    .header-left {
       display: flex;
-      justify-content: space-around;
       align-items: center;
-      height: 100%;
     }
 
-    .nav-button {
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0;
+      white-space: nowrap;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-title:hover {
+      color: var(--color-primary);
+      transform: scale(1.02);
+    }
+
+    .brand-icon {
+      font-size: 1.125rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-spacer {
       flex: 1;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-btn {
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100%;
       border: none;
       background: transparent;
       color: var(--color-text-secondary);
-      font-size: 0.875rem;
-      font-weight: 500;
+      font-size: 1.375rem;
       cursor: pointer;
-      transition: all 0.25s ease;
+      border-radius: 0.5rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       -webkit-tap-highlight-color: transparent;
-      position: relative;
     }
 
-    .nav-button .nav-label {
-      transition: all 0.25s;
-    }
-
-    .nav-button:hover {
+    .header-btn:hover {
+      background: var(--color-surface);
       color: var(--color-text-primary);
-      background: rgba(37, 99, 235, 0.04);
+      transform: rotate(5deg);
     }
 
-    .nav-button.active {
-      color: var(--color-primary);
-      font-weight: 600;
-      background: rgba(37, 99, 235, 0.06);
+    .header-btn:active {
+      background: var(--color-border);
+      transform: scale(0.95) rotate(0deg);
     }
 
-    .nav-button.active::after {
-      content: '';
-      position: absolute;
+    .header-btn-add {
+      background: var(--color-primary);
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 500;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .header-btn-add:hover {
+      background: var(--color-primary-dark);
+      color: white;
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .header-btn-add:active {
+      background: var(--color-primary-dark);
+      transform: scale(0.98);
+    }
+
+    /* Hamburger Menu Overlay */
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       bottom: 0;
-      left: 10%;
-      right: 10%;
-      height: 3px;
-      background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
-      border-radius: 3px 3px 0 0;
-      box-shadow: 0 -2px 8px rgba(37, 99, 235, 0.3);
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 150;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .menu-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Slide-out Menu */
+    .slide-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      background: var(--color-surface);
+      z-index: 200;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .slide-menu.active {
+      transform: translateX(0);
+    }
+
+    .menu-header {
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .menu-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .menu-close-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      border-radius: var(--border-radius);
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .menu-close-btn:hover {
+      background: var(--color-background);
+      color: var(--color-text-primary);
+    }
+
+    .menu-nav {
+      flex: 1;
+      padding: var(--spacing-sm) 0;
+      overflow-y: auto;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: 0.75rem 1.5rem;
+      color: var(--color-text-secondary);
+      font-size: 1rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+      border: none;
+      border-left: 3px solid transparent;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      min-height: 48px;
+    }
+
+    .menu-item:hover {
+      background: var(--color-background);
+      color: var(--color-text-primary);
+    }
+
+    .menu-item.active {
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--color-primary);
+      font-weight: 500;
+      border-left-color: var(--color-primary);
+    }
+
+    .menu-item-icon {
+      font-size: 1.125rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    /* Mobile responsive menu */
+    @media (max-width: 639px) {
+      .slide-menu {
+        width: 85%;
+        max-width: 320px;
+      }
+
+      .header-title {
+        font-size: 1.125rem;
+      }
+
+      .page-header {
+        padding: 1rem 0;
+        margin-bottom: 1.5rem;
+      }
     }
 
     /* Modal */
@@ -834,23 +1084,6 @@
     }
 
     @media (min-width: 768px) {
-      #app {
-        padding-bottom: 0;
-        max-width: 90%;
-        width: 100%;
-        max-width: min(90%, 1400px);
-      }
-
-      .view {
-        padding: var(--spacing-lg);
-      }
-
-      #bottom-nav {
-        max-width: 768px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-
       /* Dashboard responsive grid */
       .dashboard-grid {
         gap: var(--spacing-lg);
@@ -964,28 +1197,52 @@
   </style>
 </head>
 <body>
-  <!-- Theme toggle button -->
-  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">
-    <span id="theme-icon">🌙</span>
-  </button>
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <button class="header-btn" onclick="toggleMenu()" aria-label="Open menu">
+        ☰
+      </button>
+    </div>
+    <span class="header-title" onclick="navigateTo('dashboard')"><span class="brand-icon">👥</span> Personal CRM</span>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <button class="header-btn header-btn-add" onclick="navigateTo('add-contact')" aria-label="Add contact">
+        +
+      </button>
+    </div>
+  </header>
 
-  <!-- Top navigation -->
-  <nav id="top-nav">
-    <div class="nav-container">
-      <button class="nav-button" data-route="dashboard">
-        <span class="nav-label">Dashboard</span>
+  <!-- Menu Overlay -->
+  <div class="menu-overlay" onclick="closeMenu()"></div>
+
+  <!-- Slide-out Menu -->
+  <nav class="slide-menu" id="slide-menu">
+    <div class="menu-header">
+      <h2>Menu</h2>
+      <button class="menu-close-btn" onclick="closeMenu()" aria-label="Close menu">
+        ✕
       </button>
-      <button class="nav-button" data-route="contacts">
-        <span class="nav-label">Contacts</span>
+    </div>
+    <div class="menu-nav">
+      <button class="menu-item" data-route="dashboard" onclick="navigateFromMenu('dashboard')">
+        <span class="menu-item-icon">📊</span>
+        <span>Dashboard</span>
       </button>
-      <button class="nav-button" data-route="activity">
-        <span class="nav-label">Activity</span>
+      <button class="menu-item" data-route="contacts" onclick="navigateFromMenu('contacts')">
+        <span class="menu-item-icon">👥</span>
+        <span>Contacts</span>
       </button>
-      <button class="nav-button" data-route="add-contact">
-        <span class="nav-label">Add Contact</span>
+      <button class="menu-item" data-route="activity" onclick="navigateFromMenu('activity')">
+        <span class="menu-item-icon">📅</span>
+        <span>Activity</span>
       </button>
-      <button class="nav-button" data-route="settings">
-        <span class="nav-label">Settings</span>
+      <button class="menu-item" data-route="settings" onclick="navigateFromMenu('settings')">
+        <span class="menu-item-icon">⚙️</span>
+        <span>Settings</span>
       </button>
     </div>
   </nav>
@@ -1564,15 +1821,7 @@
     }
 
     function updateNavigation() {
-      const navButtons = document.querySelectorAll('.nav-button');
-      navButtons.forEach(btn => {
-        const route = btn.getAttribute('data-route');
-        if (route === AppState.currentView) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
+      updateMenuActiveState();
     }
 
     /* ===== VIEW RENDERERS ===== */
@@ -1656,15 +1905,21 @@
       if (totalContacts === 0) {
         app.innerHTML = `
           <div class="view">
-            <div class="view-header">
-              <h1 class="view-title">Dashboard</h1>
+            <div class="page-header">
+              <div class="content-container">
+                <div class="view-header">
+                  <h1 class="view-title">Dashboard</h1>
+                </div>
+              </div>
             </div>
-            <div class="empty-state">
-              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">👋</div>
-              <h2>Welcome to Relationship CRM</h2>
-              <p class="text-muted">Keep track of your personal and professional relationships.</p>
-              <p class="text-muted text-small">Start by adding your first contact, then log interactions to stay connected.</p>
-              <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Your First Contact</button>
+            <div class="content-container">
+              <div class="empty-state">
+                <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">👋</div>
+                <h2>Welcome to Relationship CRM</h2>
+                <p class="text-muted">Keep track of your personal and professional relationships.</p>
+                <p class="text-muted text-small">Start by adding your first contact, then log interactions to stay connected.</p>
+                <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Your First Contact</button>
+              </div>
             </div>
           </div>
         `;
@@ -1673,10 +1928,15 @@
 
       app.innerHTML = `
         <div class="view">
-          <div class="view-header">
-            <h1 class="view-title">Dashboard</h1>
+          <div class="page-header">
+            <div class="content-container">
+              <div class="view-header">
+                <h1 class="view-title">Dashboard</h1>
+              </div>
+            </div>
           </div>
 
+          <div class="content-container">
           <div class="dashboard-new-grid">
             <!-- Priority Contacts -->
             <div class="card card-priority" style="margin-bottom: 0; ${priorityContacts.length > 0 ? 'border-left: 3px solid var(--color-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);' : 'opacity: 0.6;'}">
@@ -1933,6 +2193,7 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
       `;
     }
@@ -2010,14 +2271,20 @@
       if (AppState.contacts.length === 0) {
         app.innerHTML = `
           <div class="view">
-            <div class="view-header">
-              <h1 class="view-title">Contacts</h1>
+            <div class="page-header">
+              <div class="content-container">
+                <div class="view-header">
+                  <h1 class="view-title">Contacts</h1>
+                </div>
+              </div>
             </div>
-            <div class="empty-state">
-              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">📇</div>
-              <h2>No Contacts Yet</h2>
-              <p class="text-muted">Your contact list is empty. Add people you want to stay in touch with.</p>
-              <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Your First Contact</button>
+            <div class="content-container">
+              <div class="empty-state">
+                <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">📇</div>
+                <h2>No Contacts Yet</h2>
+                <p class="text-muted">Your contact list is empty. Add people you want to stay in touch with.</p>
+                <button class="btn mt-md" onclick="navigateTo('add-contact')">Add Your First Contact</button>
+              </div>
             </div>
           </div>
         `;
@@ -2072,10 +2339,15 @@
 
       app.innerHTML = `
         <div class="view">
-          <div class="view-header">
-            <h1 class="view-title">Contacts (${AppState.contacts.length})</h1>
+          <div class="page-header">
+            <div class="content-container">
+              <div class="view-header">
+                <h1 class="view-title">Contacts (${AppState.contacts.length})</h1>
+              </div>
+            </div>
           </div>
 
+          <div class="content-container">
           ${AppState.enrichmentConflicts.length > 0 ? `
             <div style="padding: var(--spacing-md); background: #FEF3C7; border: 1px solid #FCD34D; border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
               <div style="display: flex; align-items: center; gap: 0.5rem; color: #92400E; font-weight: 600; margin-bottom: 0.25rem;">
@@ -2160,6 +2432,7 @@
               }).join('')}
             </div>
           `}
+          </div>
         </div>
       `;
     }
@@ -2170,15 +2443,21 @@
       if (AppState.interactions.length === 0) {
         app.innerHTML = `
           <div class="view">
-            <div class="view-header">
-              <h1 class="view-title">Activity Timeline</h1>
+            <div class="page-header">
+              <div class="content-container">
+                <div class="view-header">
+                  <h1 class="view-title">Activity</h1>
+                </div>
+              </div>
             </div>
-            <div class="empty-state">
-              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">📅</div>
-              <h2>No Activity Yet</h2>
-              <p class="text-muted">Your activity timeline is empty. Log interactions with your contacts to see them here.</p>
-              <p class="text-muted text-small">Go to any contact's page and click "Log Interaction" to get started.</p>
-              <button class="btn mt-md" onclick="navigateTo('contacts')">View Contacts</button>
+            <div class="content-container">
+              <div class="empty-state">
+                <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-primary);">📅</div>
+                <h2>No Activity Yet</h2>
+                <p class="text-muted">Your activity timeline is empty. Log interactions with your contacts to see them here.</p>
+                <p class="text-muted text-small">Go to any contact's page and click "Log Interaction" to get started.</p>
+                <button class="btn mt-md" onclick="navigateTo('contacts')">View Contacts</button>
+              </div>
             </div>
           </div>
         `;
@@ -2208,10 +2487,15 @@
 
       app.innerHTML = `
         <div class="view">
-          <div class="view-header">
-            <h1 class="view-title">Activity Timeline</h1>
+          <div class="page-header">
+            <div class="content-container">
+              <div class="view-header">
+                <h1 class="view-title">Activity</h1>
+              </div>
+            </div>
           </div>
 
+          <div class="content-container">
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             ${dates.map(date => {
               const interactions = groupedByDate[date];
@@ -2261,6 +2545,7 @@
                 </div>
               `;
             }).join('')}
+          </div>
           </div>
         </div>
       `;
@@ -3639,17 +3924,21 @@
       if (AppState.enrichmentConflicts.length === 0) {
         app.innerHTML = `
           <div class="view">
-            <div class="view-header" style="display: flex; align-items: center; gap: 1rem;">
-              <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('contacts')">
-                ← Back
-              </button>
-              <h1 class="view-title" style="margin: 0;">Data Conflicts</h1>
+            <div class="page-header">
+              <div class="content-container" style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('contacts')">
+                  ← Back
+                </button>
+                <h1 class="view-title" style="margin: 0; flex: 1;">Data Conflicts</h1>
+              </div>
             </div>
-            <div class="empty-state">
-              <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-success);">✓</div>
-              <h2>No Conflicts</h2>
-              <p class="text-muted">All your contact data is in sync!</p>
-              <button class="btn mt-md" onclick="navigateTo('contacts')">Back to Contacts</button>
+            <div class="content-container">
+              <div class="empty-state">
+                <div class="empty-state-icon" style="font-size: 2rem; color: var(--color-success);">✓</div>
+                <h2>No Conflicts</h2>
+                <p class="text-muted">All your contact data is in sync!</p>
+                <button class="btn mt-md" onclick="navigateTo('contacts')">Back to Contacts</button>
+              </div>
             </div>
           </div>
         `;
@@ -3658,13 +3947,16 @@
 
       app.innerHTML = `
         <div class="view">
-          <div class="view-header" style="display: flex; align-items: center; gap: 1rem;">
-            <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('contacts')">
-              ← Back
-            </button>
-            <h1 class="view-title" style="margin: 0;">Resolve Data Conflicts</h1>
+          <div class="page-header">
+            <div class="content-container" style="display: flex; align-items: center; gap: 1rem;">
+              <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('contacts')">
+                ← Back
+              </button>
+              <h1 class="view-title" style="margin: 0; flex: 1;">Resolve Conflicts</h1>
+            </div>
           </div>
 
+          <div class="content-container">
           <div style="padding: var(--spacing-md); background: #FEF3C7; border: 1px solid #FCD34D; border-radius: var(--border-radius); margin-bottom: var(--spacing-lg);">
             <div style="font-weight: 600; color: #92400E; margin-bottom: 0.25rem;">
               ${AppState.enrichmentConflicts.length} contact(s) with conflicts
@@ -3716,6 +4008,7 @@
               </div>
             `;
           }).join('')}
+          </div>
         </div>
       `;
     }
@@ -3725,10 +4018,15 @@
 
       app.innerHTML = `
         <div class="view">
-          <div class="view-header">
-            <h1 class="view-title">Settings</h1>
+          <div class="page-header">
+            <div class="content-container">
+              <div class="view-header">
+                <h1 class="view-title">Settings</h1>
+              </div>
+            </div>
           </div>
 
+          <div class="content-container">
           <!-- Data Management -->
           <div class="card mb-lg">
             <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
@@ -3863,6 +4161,7 @@
                 <span style="font-weight: 600;">1.26</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
       `;
@@ -4314,6 +4613,43 @@
       document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
     }
 
+    /* ===== HAMBURGER MENU ===== */
+
+    function toggleMenu() {
+      const menu = document.getElementById('slide-menu');
+      const overlay = document.querySelector('.menu-overlay');
+      menu.classList.toggle('active');
+      overlay.classList.toggle('active');
+      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    }
+
+    function closeMenu() {
+      const menu = document.getElementById('slide-menu');
+      const overlay = document.querySelector('.menu-overlay');
+      menu.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function navigateFromMenu(route) {
+      closeMenu();
+      navigateTo(route);
+    }
+
+    function updateMenuActiveState() {
+      const menuItems = document.querySelectorAll('.menu-item');
+      menuItems.forEach(item => {
+        const route = item.getAttribute('data-route');
+        if (route === AppState.currentView ||
+            (route === 'contacts' && ['contact', 'edit-contact', 'add-contact', 'enrichment-conflicts'].includes(AppState.currentView)) ||
+            (route === 'dashboard' && AppState.currentView === 'dashboard')) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
     /* ===== INITIALIZATION ===== */
 
     function init() {
@@ -4329,18 +4665,15 @@
       // Set up hash change listener
       window.addEventListener('hashchange', handleHashChange);
 
-      // Set up bottom navigation
-      document.querySelectorAll('.nav-button').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const route = btn.getAttribute('data-route');
-          navigateTo(route);
-        });
-      });
-
       // Keyboard shortcuts
       window.addEventListener('keydown', (e) => {
-        // ESC to close modal
+        // ESC to close modal or menu
         if (e.key === 'Escape') {
+          const menu = document.getElementById('slide-menu');
+          if (menu && menu.classList.contains('active')) {
+            closeMenu();
+            return;
+          }
           const modal = document.getElementById('interaction-modal');
           if (modal && modal.classList.contains('active')) {
             closeInteractionModal();
