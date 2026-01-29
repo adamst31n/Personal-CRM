@@ -933,6 +933,40 @@
         flex-direction: column !important;
         gap: 1rem !important;
       }
+      
+      /* Contact detail header - stack on mobile */
+      .contact-detail-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+      }
+      
+      .contact-name-center {
+        position: static !important;
+        transform: none !important;
+        text-align: left !important;
+        pointer-events: auto !important;
+      }
+      
+      .contact-name-center h1 {
+        white-space: normal !important;
+        font-size: 1.25rem !important;
+      }
+      
+      .contact-actions {
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+      }
+      
+      .contact-actions .btn {
+        flex: 1 1 auto !important;
+        min-width: fit-content !important;
+      }
+      
+      /* Add padding to forms on mobile to prevent field cutoff */
+      .view form {
+        padding-bottom: 6rem !important;
+      }
     }
 
     /* Needs Attention Grid - desktop */
@@ -940,6 +974,33 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
+    }
+    
+    /* Contact Detail Header */
+    .contact-detail-header {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      min-height: 48px;
+    }
+    
+    .contact-name-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+    }
+    
+    .contact-name-center h1 {
+      white-space: nowrap;
+    }
+    
+    .contact-actions {
+      display: flex;
+      gap: 0.5rem;
     }
 
     /* Hide on mobile */
@@ -3045,18 +3106,18 @@
       app.innerHTML = `
         <div class="view">
           <!-- Header: Back button and Actions with absolutely centered name -->
-          <div style="position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; min-height: 48px;">
+          <div class="contact-detail-header">
             <button class="back-button" onclick="navigateTo('contacts')">← Back</button>
 
             <!-- Absolutely Centered Name Title -->
-            <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none;">
-              <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.025em; color: var(--color-text-primary); line-height: 1.2; white-space: nowrap;">
+            <div class="contact-name-center">
+              <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.025em; color: var(--color-text-primary); line-height: 1.2;">
                 ${escapeHtml(getFullName(contact))}${contact.muted ? ' <span style="font-size: 0.75rem; color: var(--color-text-secondary);">🔇</span>' : ''}
               </h1>
               <div style="color: var(--color-text-secondary); font-size: 0.875rem; font-style: italic;">${contact.relationshipType}</div>
             </div>
 
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="contact-actions">
               <button
                 class="btn ${contact.muted ? 'btn-secondary' : 'btn-secondary'}"
                 style="padding: 0.5rem 1rem; font-size: 0.875rem; ${contact.muted ? 'background: var(--color-text-secondary); color: white;' : ''}"
