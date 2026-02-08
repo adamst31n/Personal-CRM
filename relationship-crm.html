@@ -688,6 +688,19 @@
       width: 90%;
       max-width: 320px;
       min-width: 240px;
+      max-height: 240px;
+      overflow: hidden;
+    }
+
+    .activity-item .activity-tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2rem;
+      background: linear-gradient(to bottom, transparent, var(--color-surface));
+      pointer-events: none;
     }
 
     .activity-item:hover .activity-tooltip {
@@ -1833,8 +1846,8 @@
   <script type="module">
     'use strict';
 
-    /* VERSION: 2.14 */
-    console.log('🔥 Personal CRM v2.14 - Firebase Sync Edition');
+    /* VERSION: 2.18 */
+    console.log('🔥 Personal CRM v2.18 - Firebase Sync Edition');
 
     /* ===== FIREBASE IMPORTS & INITIALIZATION ===== */
     
@@ -2102,28 +2115,39 @@
       }
     }
 
-    // Save data to Firestore
+    // Save data to Firestore (debounced to prevent race conditions)
+    let _saveTimeout = null;
+    let _saveInFlight = false;
+
     async function saveState() {
       if (!currentUser) return;
 
-      try {
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        await setDoc(userDocRef, {
-          contacts: AppState.contacts,
-          interactions: AppState.interactions,
-          linkedinData: AppState.linkedinData,
-          enrichmentConflicts: AppState.enrichmentConflicts,
-          version: '1.0',
-          lastUpdated: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error('Error saving data to Firestore:', error);
-        if (error.code === 'permission-denied') {
-          showToast('Permission denied. Please check Firestore rules.', 'error');
-        } else {
-          showToast('Error saving data', 'error');
+      // Clear any pending save — we'll save with the latest state
+      if (_saveTimeout) clearTimeout(_saveTimeout);
+
+      _saveTimeout = setTimeout(async () => {
+        _saveInFlight = true;
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          await setDoc(userDocRef, {
+            contacts: AppState.contacts,
+            interactions: AppState.interactions,
+            linkedinData: AppState.linkedinData,
+            enrichmentConflicts: AppState.enrichmentConflicts,
+            version: '1.0',
+            lastUpdated: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error saving data to Firestore:', error);
+          if (error.code === 'permission-denied') {
+            showToast('Permission denied. Please check Firestore rules.', 'error');
+          } else {
+            showToast('Error saving data', 'error');
+          }
+        } finally {
+          _saveInFlight = false;
         }
-      }
+      }, 300);
     }
 
     // Set up real-time sync
@@ -2133,6 +2157,10 @@
       const userDocRef = doc(db, 'users', currentUser.uid);
       
       unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+        // Skip snapshot updates while we have a save in-flight or pending
+        // to prevent overwriting local state with stale data
+        if (_saveInFlight || _saveTimeout) return;
+
         if (doc.exists()) {
           const data = doc.data();
           AppState.contacts = data.contacts || [];
@@ -2236,7 +2264,7 @@
       return (contact.name || '?')[0].toUpperCase();
     }
 
-    function updateContact(id, updates) {
+    function updateContact(id, updates, skipSave = false) {
       const index = AppState.contacts.findIndex(c => c.id === id);
       if (index === -1) return null;
 
@@ -2254,7 +2282,7 @@
         autoEnrichContact(id);
       }
 
-      saveState();
+      if (!skipSave) saveState();
       return AppState.contacts[index];
     }
 
@@ -2369,11 +2397,11 @@
       return true;
     }
 
-    function updateContactLastInteraction(contactId) {
+    function updateContactLastInteraction(contactId, skipSave = false) {
       const interactions = getInteractionsByContact(contactId);
 
       if (interactions.length === 0) {
-        updateContact(contactId, { lastContactedAt: null });
+        updateContact(contactId, { lastContactedAt: null }, skipSave);
         return;
       }
 
@@ -2381,7 +2409,7 @@
       const pastInteractions = interactions.filter(i => !isFutureDate(i.date));
 
       if (pastInteractions.length === 0) {
-        updateContact(contactId, { lastContactedAt: null });
+        updateContact(contactId, { lastContactedAt: null }, skipSave);
         return;
       }
 
@@ -2390,15 +2418,15 @@
         return currentDate > latest ? currentDate : latest;
       }, new Date(0));
 
-      updateContact(contactId, { lastContactedAt: mostRecent.getTime() });
+      updateContact(contactId, { lastContactedAt: mostRecent.getTime() }, skipSave);
     }
 
-    // Recalculate lastContactedAt for all contacts (fixes stale data from before tag tracking)
+    // Recalculate lastContactedAt for all contacts (batch — single save at end)
     function recalculateAllLastContactedDates() {
       AppState.contacts.forEach(contact => {
-        updateContactLastInteraction(contact.id);
+        updateContactLastInteraction(contact.id, true); // skip individual saves
       });
-      saveState();
+      saveState(); // one save for all changes
     }
 
     /* ===== CALCULATION FUNCTIONS ===== */
@@ -2795,7 +2823,7 @@
                               <div class="activity-tooltip">
                                 <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${fullParticipantText}</div>
                                 <div class="text-muted" style="margin-bottom: 0.5rem;">${formatDate(interaction.date)}</div>
-                                ${interaction.notes ? `<div>${escapeHtml(interaction.notes)}</div>` : ''}
+                                ${interaction.notes ? `<div>${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                               </div>
                             ` : ''}
                           </div>
@@ -2836,7 +2864,7 @@
                               <div class="activity-tooltip">
                                 <div style="font-weight: 600; margin-bottom: 0.25rem;">${interaction.type} with ${fullParticipantText}</div>
                                 <div class="text-muted" style="margin-bottom: 0.5rem;">${formatRelativeDate(interaction.date)}</div>
-                                ${interaction.notes ? `<div>${escapeHtml(interaction.notes)}</div>` : ''}
+                                ${interaction.notes ? `<div>${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                               </div>
                             ` : ''}
                           </div>
@@ -2955,6 +2983,11 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Escape HTML but preserve newlines as <br> tags for multi-line notes display
+    function escapeHtmlPreserveNewlines(text) {
+      return escapeHtml(text).replace(/\n/g, '<br>');
     }
 
     // Store filter state for contacts page
@@ -3281,16 +3314,27 @@
                       const isFuture = isFutureDate(interaction.date);
                       const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
                       const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                      // Build participant list including tagged contacts
+                      const participants = [getFullName(interaction.contact)];
+                      if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+                        interaction.taggedContacts.forEach(taggedId => {
+                          const taggedContact = getContact(taggedId);
+                          if (taggedContact) participants.push(getFullName(taggedContact));
+                        });
+                      }
+                      const participantText = participants.length > 2
+                        ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
+                        : participants.map(n => escapeHtml(n)).join(' & ');
                       return `
                         <div class="card card-clickable" style="padding: 1rem; margin: 0; ${borderStyle}" onclick="navigateTo('contact', {id: '${interaction.contact.id}'})">
                           <div style="display: flex; gap: 0.75rem; align-items: start;">
                             <span class="icon icon-${status}" style="background: linear-gradient(135deg, var(--color-${status}) 0%, var(--color-${status}) 100%); color: white; font-size: 0.875rem; font-weight: 700; ${isFuture ? 'opacity: 0.7; border: 2px dashed var(--color-primary);' : ''}">${initials}</span>
                             <div style="flex: 1;">
                               <div style="font-weight: 600; margin-bottom: 0.25rem; ${isFuture ? 'color: var(--color-primary);' : ''}">
-                                ${typeLabel} with ${escapeHtml(getFullName(interaction.contact))}
+                                ${typeLabel} with ${participantText}
                               </div>
                               <div class="text-muted text-small">${interaction.contact.relationshipType}</div>
-                              ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtml(interaction.notes)}</div>` : ''}
+                              ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                             </div>
                           </div>
                         </div>
@@ -3502,7 +3546,7 @@
                       </div>
                       <div class="text-muted text-small" style="${isFuture ? 'color: var(--color-primary); font-weight: 500;' : ''}">${formatDate(interaction.date)} (${formatRelativeDate(interaction.date)})</div>
                       ${allParticipants.length > 0 ? `<div style="margin-top: 0.375rem; font-size: 0.75rem; color: var(--color-text-secondary);">Also with: ${allParticipants.map(name => escapeHtml(name)).join(', ')}</div>` : ''}
-                      ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtml(interaction.notes)}</div>` : ''}
+                      ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                     </div>
                   `;
                 }).join('')}
@@ -4853,7 +4897,7 @@
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span class="text-muted">Version</span>
-                <span style="font-weight: 600;">2.14</span>
+                <span style="font-weight: 600;">2.18</span>
               </div>
             </div>
           </div>
