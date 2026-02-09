@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Environment / secrets
+.env
+.env.local
+
+# Node (in case you ever add packages)
+node_modules/
+package-lock.json
+
+# Misc
+*.log
