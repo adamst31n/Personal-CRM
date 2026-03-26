@@ -290,16 +290,9 @@
       border: 1px solid var(--color-border-light);
     }
     
-    /* Dark mode Needs Attention improvements */
-    body.dark-mode .needs-attention-grid > div {
-      padding: 1rem;
-      background: var(--color-background);
-      border-radius: 0.5rem;
-    }
-    
-    body.dark-mode .needs-attention-grid h3 {
-      color: var(--color-primary-light);
-      border-bottom-color: var(--color-primary) !important;
+    /* Needs Attention column sub-labels in dark mode */
+    body.dark-mode .needs-attention-label {
+      opacity: 0.6;
     }
     
     /* Dark mode Priority/Contact ASAP section enhancements */
@@ -1191,7 +1184,9 @@
     .needs-attention-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      gap: 0;
+      max-height: 200px;
+      overflow-y: auto;
     }
     
     /* Contact Detail Header */
@@ -1612,12 +1607,12 @@
     .priority-flat-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       padding: 0.1875rem 0.375rem 0.1875rem 0.5rem;
-      border-left: 2px solid transparent;
+      border-left: 3px solid transparent;
       border-radius: 0 0.1875rem 0.1875rem 0;
       cursor: pointer;
-      gap: 0.375rem;
+      gap: 0.5rem;
       min-width: 0;
       transition: background 0.1s ease;
     }
@@ -1625,6 +1620,27 @@
       background: var(--color-background);
     }
     body.dark-mode .priority-flat-row:hover {
+      background: var(--color-surface-elevated);
+    }
+
+    /* Needs Attention flat row — same language as Priority */
+    .needs-attention-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0.1875rem 0.375rem 0.1875rem 0.5rem;
+      border-left: 3px solid transparent;
+      border-radius: 0 0.1875rem 0.1875rem 0;
+      cursor: pointer;
+      gap: 0.5rem;
+      min-width: 0;
+      line-height: 1.4;
+      transition: background 0.1s ease;
+    }
+    .needs-attention-row:hover {
+      background: var(--color-background);
+    }
+    body.dark-mode .needs-attention-row:hover {
       background: var(--color-surface-elevated);
     }
 
@@ -1706,7 +1722,7 @@
       .activity-feed-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0 1rem;
+        gap: 2px 1rem;
       }
 
       /* Single-line activity feed row */
@@ -1718,7 +1734,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        line-height: 1.5;
+        line-height: 1.45;
         transition: background 0.1s ease;
       }
 
@@ -1743,24 +1759,29 @@
         gap: 0 1rem;
       }
 
-      /* Birthday flat row */
+      /* Birthday pill tile */
       .birthday-flat-row {
         display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        padding: 0.125rem 0.25rem;
-        border-radius: 0.1875rem;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0.3125rem 0.5rem 0.3125rem 0.5rem;
+        border-left: 3px solid transparent;
+        border-radius: 0.3125rem;
+        background: rgba(0, 0, 0, 0.035);
         cursor: pointer;
-        gap: 0.375rem;
+        gap: 0.5rem;
         min-width: 0;
         transition: background 0.1s ease;
       }
 
       .birthday-flat-row:hover {
-        background: var(--color-background);
+        background: rgba(0, 0, 0, 0.065);
+      }
+      body.dark-mode .birthday-flat-row {
+        background: rgba(255, 255, 255, 0.05);
       }
       body.dark-mode .birthday-flat-row:hover {
-        background: var(--color-surface-elevated);
+        background: rgba(255, 255, 255, 0.09);
       }
 
       /* Cards can be wider on desktop */
@@ -2676,27 +2697,27 @@
       }, 0);
     }
 
-    function renderNeedsAttentionColumn(label, contacts) {
+    function renderNeedsAttentionColumn(label, contacts, isFirst = false) {
+      const colStyle = isFirst
+        ? 'padding-right: 0.75rem; border-right: 1px solid rgba(107,114,128,0.15);'
+        : 'padding-left: 0.75rem;';
       return `
-        <div style="${contacts.length === 0 ? 'opacity: 0.5;' : ''}">
-          <h3 style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.5rem; padding-bottom: 0.375rem; border-bottom: 2px solid var(--color-primary);">
-            ${label} ${contacts.length > 0 ? `(${contacts.length})` : ''}
-          </h3>
+        <div style="${colStyle} ${contacts.length === 0 ? 'opacity: 0.5;' : ''}">
+          <div class="needs-attention-label" style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">${label}</div>
           ${contacts.length > 0 ? `
-            <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 160px; overflow-y: auto; padding-right: 0.5rem;">
-              ${contacts.map(contact => {
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              ${contacts.map((contact, i, arr) => {
                 const days = getDaysSinceLastContact(contact.id);
                 const status = getContactStatus(contact.id);
-                const statusText = days === null ? 'Never' : `${days}d`;
+                const statusText = days === null ? '—' : `${days}d`;
                 const hasUpcoming = hasUpcomingInteraction(contact.id);
+                const dayColor = {never: 'rgba(107,114,128,0.65)', recent: 'rgba(5,150,105,0.8)', caution: 'rgba(245,158,11,0.9)', warning: 'rgba(234,88,12,0.95)', overdue: 'rgba(220,38,38,1)'}[status] || 'var(--color-text-secondary)';
+                const borderColor = {never: 'rgba(107,114,128,0.35)', recent: 'rgba(5,150,105,0.45)', caution: 'rgba(245,158,11,0.55)', warning: 'rgba(234,88,12,0.7)', overdue: 'rgba(220,38,38,0.8)'}[status] || 'var(--color-border)';
+                const divider = i < arr.length - 1 ? 'border-bottom: 1px solid rgba(107,114,128,0.12);' : '';
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer; flex-shrink: 0; ${hasUpcoming ? 'opacity: 0.6;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                    <div style="min-width: 0; flex: 1;">
-                      <div style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${hasUpcoming ? 'color: var(--color-text-secondary);' : ''}">${escapeHtml(getFullName(contact))}</div>
-                    </div>
-                    <div style="font-size: 0.75rem; font-weight: 400; color: ${{never: 'rgba(107,114,128,0.47)', recent: 'rgba(5,150,105,0.47)', caution: 'rgba(245,158,11,0.47)', warning: 'rgba(234,88,12,0.47)', overdue: 'rgba(220,38,38,0.47)'}[status] || 'var(--color-text-secondary)'}; margin-left: 0.5rem; white-space: nowrap;">
-                      ${hasUpcoming ? '📅 ' : ''}${statusText}
-                    </div>
+                  <div class="needs-attention-row" style="border-left-color: ${borderColor}; ${divider} ${hasUpcoming ? 'opacity: 0.55;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                    <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 2.25rem);">${escapeHtml(getFullName(contact))}</span>
+                    <span style="font-size: 0.75rem; font-weight: 600; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${statusText}</span>
                   </div>
                 `;
               }).join('')}
@@ -2830,12 +2851,12 @@
                     const days = getDaysSinceLastContact(contact.id);
                     const status = getContactStatus(contact.id);
                     const daysText = days === null ? '—' : `${days}d`;
-                    const dayColor = {never: 'rgba(107,114,128,0.6)', recent: 'rgba(5,150,105,0.7)', caution: 'rgba(245,158,11,0.8)', warning: 'rgba(234,88,12,0.85)', overdue: 'rgba(220,38,38,0.9)'}[status] || 'var(--color-text-secondary)';
-                    const borderColor = {never: 'rgba(107,114,128,0.3)', recent: 'rgba(5,150,105,0.4)', caution: 'rgba(245,158,11,0.5)', warning: 'rgba(234,88,12,0.6)', overdue: 'rgba(220,38,38,0.7)'}[status] || 'var(--color-border)';
+                    const dayColor = {never: 'rgba(107,114,128,0.65)', recent: 'rgba(5,150,105,0.8)', caution: 'rgba(245,158,11,0.9)', warning: 'rgba(234,88,12,0.95)', overdue: 'rgba(220,38,38,1)'}[status] || 'var(--color-text-secondary)';
+                    const borderColor = {never: 'rgba(107,114,128,0.45)', recent: 'rgba(5,150,105,0.55)', caution: 'rgba(245,158,11,0.65)', warning: 'rgba(234,88,12,0.8)', overdue: 'rgba(220,38,38,0.9)'}[status] || 'var(--color-border)';
                     return `
                       <div class="priority-flat-row" style="border-left-color: ${borderColor};" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                        <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${escapeHtml(getFullName(contact))}</span>
-                        <span style="font-size: 0.75rem; font-weight: 500; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${daysText}</span>
+                        <span style="font-weight: 700; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 2.25rem);">${escapeHtml(getFullName(contact))}</span>
+                        <span style="font-size: 0.75rem; font-weight: 600; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${daysText}</span>
                       </div>
                     `;
                   }).join('')}
@@ -2845,11 +2866,11 @@
 
             <!-- Needs Attention -->
             <div class="card card-attention" style="margin-bottom: 0; ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? 'border-left: 3px solid var(--color-warning);' : 'opacity: 0.6;'}">
-              <h2 class="section-title">Needs Attention</h2>
+              <h2 class="section-title" style="margin-bottom: 0.25rem;">Needs Attention</h2>
               ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? `
                 <div class="needs-attention-grid">
-                  ${renderNeedsAttentionColumn('Professional', needsAttentionProfessional)}
-                  ${renderNeedsAttentionColumn('Personal', needsAttentionPersonal)}
+                  ${renderNeedsAttentionColumn('Professional', needsAttentionProfessional, true)}
+                  ${renderNeedsAttentionColumn('Personal', needsAttentionPersonal, false)}
                 </div>
               ` : '<p class="text-muted text-small">All caught up! Great job staying connected with your network.</p>'}
             </div>
@@ -2878,7 +2899,7 @@
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
                           <div class="activity-feed-row upcoming" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span style="font-weight: 600; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText} &middot; ${formatDate(interaction.date)}</span>
+                            <span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span>
                           </div>
                         `;
                       }).join('')}
@@ -2905,7 +2926,7 @@
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
                           <div class="activity-feed-row" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span style="font-weight: 600; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText} &middot; ${formatRelativeDate(interaction.date)}</span>
+                            <span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span>
                           </div>
                         `;
                       }).join('')}
@@ -2931,15 +2952,16 @@
                   return '<p class="text-muted" style="font-size: 0.8125rem;">No birthdays on file. Add birthday info when editing a contact to see reminders here.</p>';
                 }
                 return `
-                  <div class="birthday-compact-grid">
+                  <div style="display: flex; flex-direction: column; gap: 0.3125rem;">
                     ${nextBirthdays.map(({ contact, daysUntil }) => {
-                      const dayText = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil}d`;
+                      const dayText = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tmrw' : `${daysUntil}d`;
                       const birthdayText = contact.birthdayMonth && contact.birthdayDay ? `${contact.birthdayMonth.slice(0, 3)} ${contact.birthdayDay}` : '';
                       const isUrgent = daysUntil <= 7;
+                      const accentColor = isUrgent ? 'rgba(220,38,38,0.75)' : 'rgba(37,99,235,0.4)';
                       return `
-                        <div class="birthday-flat-row" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                          <span style="font-weight: 500; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${escapeHtml(getFullName(contact))}${birthdayText ? `<span class="text-muted" style="font-weight: 400;"> &middot; ${birthdayText}</span>` : ''}</span>
-                          <span style="font-size: 0.75rem; font-weight: 600; color: ${isUrgent ? 'var(--color-danger)' : 'var(--color-primary)'}; white-space: nowrap; flex-shrink: 0;">${dayText}</span>
+                        <div class="birthday-flat-row" style="border-left-color: ${accentColor};" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                          <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 3rem);">${escapeHtml(getFullName(contact))}${birthdayText ? `<span class="text-muted" style="font-weight: 400;"> &middot; ${birthdayText}</span>` : ''}</span>
+                          <span style="font-size: 0.8125rem; font-weight: 700; color: ${isUrgent ? 'var(--color-danger)' : 'var(--color-primary)'}; white-space: nowrap; flex-shrink: 0; margin-left: auto;">${dayText}</span>
                         </div>
                       `;
                     }).join('')}
@@ -2951,37 +2973,20 @@
             <!-- Quick Stats Card -->
             <div class="card card-stats" style="margin-bottom: 0;">
               <h2 class="section-title">Quick Stats</h2>
-              <!-- Contacts -->
-              <div style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-                  <div>
-                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${totalContacts}</div>
-                    <div class="text-muted" style="font-size: 0.8125rem;">Total Contacts</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${professionalContacts}</div>
-                    <div class="text-muted" style="font-size: 0.8125rem;">Professional</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${personalContacts}</div>
-                    <div class="text-muted" style="font-size: 0.8125rem;">Personal</div>
-                  </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+                <!-- Contacts column -->
+                <div style="display: flex; flex-direction: column; gap: 3px; padding-right: 0.875rem; border-right: 1px solid rgba(107,114,128,0.2);">
+                  <div style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">Contacts</div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> total</span></div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${professionalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> professional</span></div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${personalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> personal</span></div>
                 </div>
-              </div>
-              <!-- Interactions breakdown -->
-              <div class="text-muted" style="font-size: 0.8125rem; margin-bottom: 0.375rem; font-weight: 600;">Interactions</div>
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-                <div>
-                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${totalInteractions}</div>
-                  <div class="text-muted" style="font-size: 0.8125rem;">Total</div>
-                </div>
-                <div>
-                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${ytdInteractions}</div>
-                  <div class="text-muted" style="font-size: 0.8125rem;">YTD</div>
-                </div>
-                <div>
-                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${l7dInteractions}</div>
-                  <div class="text-muted" style="font-size: 0.8125rem;">L7D</div>
+                <!-- Interactions column -->
+                <div style="display: flex; flex-direction: column; gap: 3px; padding-left: 0.875rem;">
+                  <div style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">Interactions</div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> total</span></div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${ytdInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> YTD</span></div>
+                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${l7dInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> L7D</span></div>
                 </div>
               </div>
             </div>
