@@ -2127,6 +2127,7 @@
 
       _saveTimeout = setTimeout(async () => {
         _saveInFlight = true;
+        _saveTimeout = null;
         try {
           const userDocRef = doc(db, 'users', currentUser.uid);
           await setDoc(userDocRef, {
@@ -2361,17 +2362,16 @@
       // Update primary contact's last interaction
       updateContactLastInteraction(interaction.contactId);
 
-      // Find contacts that were removed from tags and recalculate their lastContactedAt
+      // Recalculate lastContactedAt for all affected tagged contacts:
+      // - Removed contacts (may have lost their most recent interaction)
+      // - All current tagged contacts (handles date changes — e.g. past → future — for existing tags)
       const removedContacts = oldTaggedContacts.filter(id => !newTaggedContacts.includes(id));
-      const addedContacts = newTaggedContacts.filter(id => !oldTaggedContacts.includes(id));
 
-      // Recalculate for removed contacts (they may have lost their most recent interaction)
       removedContacts.forEach(contactId => {
         updateContactLastInteraction(contactId);
       });
 
-      // Update for newly added contacts
-      addedContacts.forEach(contactId => {
+      newTaggedContacts.forEach(contactId => {
         updateContactLastInteraction(contactId);
       });
 
@@ -2610,18 +2610,18 @@
             ${label} ${contacts.length > 0 ? `(${contacts.length})` : ''}
           </h3>
           ${contacts.length > 0 ? `
-            <div style="display: flex; flex-direction: column; gap: 0.375rem; max-height: 160px; overflow-y: auto; padding-right: 0.5rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 160px; overflow-y: auto; padding-right: 0.5rem;">
               ${contacts.map(contact => {
                 const days = getDaysSinceLastContact(contact.id);
                 const status = getContactStatus(contact.id);
                 const statusText = days === null ? 'Never' : `${days}d`;
                 const hasUpcoming = hasUpcomingInteraction(contact.id);
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer; flex-shrink: 0; ${hasUpcoming ? 'opacity: 0.6;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0.5rem; background: var(--color-background); border-radius: 0.5rem; cursor: pointer; flex-shrink: 0; ${hasUpcoming ? 'opacity: 0.6;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
                     <div style="min-width: 0; flex: 1;">
-                      <div style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${hasUpcoming ? 'color: var(--color-text-secondary);' : ''}">${escapeHtml(getFullName(contact))}</div>
+                      <div style="font-weight: 700; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${hasUpcoming ? 'color: var(--color-text-secondary);' : ''}">${escapeHtml(getFullName(contact))}</div>
                     </div>
-                    <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-${status}); margin-left: 0.5rem; white-space: nowrap; ${hasUpcoming ? 'opacity: 0.7;' : ''}">
+                    <div style="font-size: 0.75rem; font-weight: 400; color: var(--color-text-secondary); margin-left: 0.5rem; white-space: nowrap;">
                       ${hasUpcoming ? '📅 ' : ''}${statusText}
                     </div>
                   </div>
@@ -2752,20 +2752,20 @@
                 <span>Contact ASAP</span>
               </h2>
               ${priorityContacts.length > 0 ? `
-                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
                   ${priorityContacts.map(contact => {
                     const days = getDaysSinceLastContact(contact.id);
                     const status = getContactStatus(contact.id);
                     const statusTextFull = days === null ? 'Never contacted' : `${days} days`;
                     const statusTextShort = days === null ? '—' : `${days}`;
                     return `
-                      <div class="card card-clickable priority-contact-card" style="padding: 0.5rem 0.75rem; margin: 0; border-left: 3px solid var(--color-${status}); flex-shrink: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div class="card card-clickable priority-contact-card" style="padding: 0.375rem 0.625rem; margin: 0; border-left: 3px solid var(--color-${status}); flex-shrink: 0;" onclick="navigateTo('contact', {id: '${contact.id}'})">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                           <div style="min-width: 0; flex: 1;">
-                            <div style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
-                            <div class="text-muted priority-contact-type" style="font-size: 0.8125rem;">${contact.relationshipType}</div>
+                            <div style="font-weight: 700; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(getFullName(contact))}</div>
+                            <div class="text-muted priority-contact-type" style="font-size: 0.75rem;">${contact.relationshipType}</div>
                           </div>
-                          <div style="color: var(--color-${status}); font-weight: 600; font-size: 0.8125rem; white-space: nowrap; margin-left: 0.5rem;">
+                          <div style="color: var(--color-text-secondary); font-weight: 400; font-size: 0.75rem; white-space: nowrap; margin-left: 0.5rem;">
                             <span class="status-full">${statusTextFull}</span>
                             <span class="status-short">${statusTextShort}</span>
                           </div>
@@ -2921,15 +2921,15 @@
               <div style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                   <div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</div>
+                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${totalContacts}</div>
                     <div class="text-muted" style="font-size: 0.8125rem;">Total Contacts</div>
                   </div>
                   <div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${professionalContacts}</div>
+                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${professionalContacts}</div>
                     <div class="text-muted" style="font-size: 0.8125rem;">Professional</div>
                   </div>
                   <div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${personalContacts}</div>
+                    <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${personalContacts}</div>
                     <div class="text-muted" style="font-size: 0.8125rem;">Personal</div>
                   </div>
                 </div>
@@ -2938,15 +2938,15 @@
               <div class="text-muted" style="font-size: 0.8125rem; margin-bottom: 0.375rem; font-weight: 600;">Interactions</div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                 <div>
-                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</div>
+                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${totalInteractions}</div>
                   <div class="text-muted" style="font-size: 0.8125rem;">Total</div>
                 </div>
                 <div>
-                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${ytdInteractions}</div>
+                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${ytdInteractions}</div>
                   <div class="text-muted" style="font-size: 0.8125rem;">YTD</div>
                 </div>
                 <div>
-                  <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${l7dInteractions}</div>
+                  <div style="font-size: 1rem; font-weight: 600; color: var(--color-primary);">${l7dInteractions}</div>
                   <div class="text-muted" style="font-size: 0.8125rem;">L7D</div>
                 </div>
               </div>
