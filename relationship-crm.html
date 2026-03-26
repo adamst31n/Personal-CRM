@@ -158,13 +158,20 @@
 
     /* Enhanced visual hierarchy for dashboard cards */
 
-    /* Priority/ASAP section - Most urgent, needs maximum prominence */
+    /* Priority/ASAP section - primary entry point */
+    .card-priority {
+      box-shadow: 0 2px 12px rgba(239, 68, 68, 0.1), 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+    .card-priority:hover {
+      box-shadow: 0 5px 18px rgba(239, 68, 68, 0.16), 0 2px 6px rgba(0, 0, 0, 0.07);
+    }
+
     body.dark-mode .card-priority {
       border: 2px solid rgba(239, 68, 68, 0.5);
       box-shadow: 0 6px 24px rgba(239, 68, 68, 0.25),
                   0 2px 8px rgba(0, 0, 0, 0.3);
-      background: linear-gradient(135deg, 
-        rgba(239, 68, 68, 0.08) 0%, 
+      background: linear-gradient(135deg,
+        rgba(239, 68, 68, 0.08) 0%,
         var(--color-surface) 50%);
     }
 
@@ -174,20 +181,20 @@
       transform: translateY(-3px);
     }
 
-    /* Needs Attention section - Important but secondary to ASAP */
+    /* Needs Attention section - secondary, intentionally lighter */
     body.dark-mode .card-attention {
-      border: 1.5px solid rgba(234, 88, 12, 0.4);
-      box-shadow: 0 4px 20px rgba(234, 88, 12, 0.2),
-                  0 2px 6px rgba(0, 0, 0, 0.25);
-      background: linear-gradient(135deg, 
-        rgba(234, 88, 12, 0.05) 0%, 
-        var(--color-surface) 60%);
+      border: 1px solid rgba(234, 88, 12, 0.25);
+      box-shadow: 0 2px 10px rgba(234, 88, 12, 0.1),
+                  0 1px 4px rgba(0, 0, 0, 0.2);
+      background: linear-gradient(135deg,
+        rgba(234, 88, 12, 0.03) 0%,
+        var(--color-surface) 70%);
     }
 
     body.dark-mode .card-attention:hover {
-      box-shadow: 0 8px 28px rgba(234, 88, 12, 0.3),
-                  0 3px 10px rgba(0, 0, 0, 0.35);
-      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.15),
+                  0 2px 6px rgba(0, 0, 0, 0.25);
+      transform: translateY(-1px);
     }
 
     /* Activity section - Informational, should recede slightly */
@@ -1623,13 +1630,13 @@
       background: var(--color-surface-elevated);
     }
 
-    /* Needs Attention flat row — same language as Priority */
+    /* Needs Attention flat row — lighter weight than Priority */
     .needs-attention-row {
       display: flex;
       align-items: center;
       justify-content: flex-start;
       padding: 0.1875rem 0.375rem 0.1875rem 0.5rem;
-      border-left: 3px solid transparent;
+      border-left: 2px solid transparent;
       border-radius: 0 0.1875rem 0.1875rem 0;
       cursor: pointer;
       gap: 0.5rem;
@@ -1764,24 +1771,26 @@
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        padding: 0.3125rem 0.5rem 0.3125rem 0.5rem;
+        padding: 0.25rem 0.5rem;
         border-left: 3px solid transparent;
         border-radius: 0.3125rem;
-        background: rgba(0, 0, 0, 0.035);
+        background: rgba(0, 0, 0, 0.025);
         cursor: pointer;
         gap: 0.5rem;
         min-width: 0;
-        transition: background 0.1s ease;
+        transition: background 0.12s ease, box-shadow 0.12s ease;
       }
 
       .birthday-flat-row:hover {
-        background: rgba(0, 0, 0, 0.065);
+        background: rgba(0, 0, 0, 0.052);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }
       body.dark-mode .birthday-flat-row {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.04);
       }
       body.dark-mode .birthday-flat-row:hover {
-        background: rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       }
 
       /* Cards can be wider on desktop */
@@ -2699,23 +2708,22 @@
 
     function renderNeedsAttentionColumn(label, contacts, isFirst = false) {
       const colStyle = isFirst
-        ? 'padding-right: 0.75rem; border-right: 1px solid rgba(107,114,128,0.15);'
+        ? 'padding-right: 0.75rem; border-right: 1px solid rgba(107,114,128,0.1);'
         : 'padding-left: 0.75rem;';
       return `
         <div style="${colStyle} ${contacts.length === 0 ? 'opacity: 0.5;' : ''}">
           <div class="needs-attention-label" style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">${label}</div>
           ${contacts.length > 0 ? `
-            <div style="display: flex; flex-direction: column; gap: 1px;">
-              ${contacts.map((contact, i, arr) => {
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              ${contacts.map(contact => {
                 const days = getDaysSinceLastContact(contact.id);
                 const status = getContactStatus(contact.id);
                 const statusText = days === null ? '—' : `${days}d`;
                 const hasUpcoming = hasUpcomingInteraction(contact.id);
-                const dayColor = {never: 'rgba(107,114,128,0.65)', recent: 'rgba(5,150,105,0.8)', caution: 'rgba(245,158,11,0.9)', warning: 'rgba(234,88,12,0.95)', overdue: 'rgba(220,38,38,1)'}[status] || 'var(--color-text-secondary)';
-                const borderColor = {never: 'rgba(107,114,128,0.35)', recent: 'rgba(5,150,105,0.45)', caution: 'rgba(245,158,11,0.55)', warning: 'rgba(234,88,12,0.7)', overdue: 'rgba(220,38,38,0.8)'}[status] || 'var(--color-border)';
-                const divider = i < arr.length - 1 ? 'border-bottom: 1px solid rgba(107,114,128,0.12);' : '';
+                const dayColor = {never: 'rgba(107,114,128,0.6)', recent: 'rgba(5,150,105,0.75)', caution: 'rgba(245,158,11,0.85)', warning: 'rgba(234,88,12,0.9)', overdue: 'rgba(220,38,38,0.95)'}[status] || 'var(--color-text-secondary)';
+                const borderColor = {never: 'rgba(107,114,128,0.25)', recent: 'rgba(5,150,105,0.35)', caution: 'rgba(245,158,11,0.45)', warning: 'rgba(234,88,12,0.6)', overdue: 'rgba(220,38,38,0.7)'}[status] || 'var(--color-border)';
                 return `
-                  <div class="needs-attention-row" style="border-left-color: ${borderColor}; ${divider} ${hasUpcoming ? 'opacity: 0.55;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                  <div class="needs-attention-row" style="border-left-color: ${borderColor}; ${hasUpcoming ? 'opacity: 0.5;' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
                     <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 2.25rem);">${escapeHtml(getFullName(contact))}</span>
                     <span style="font-size: 0.75rem; font-weight: 600; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${statusText}</span>
                   </div>
@@ -2840,10 +2848,10 @@
           <div class="content-container">
           <div class="dashboard-new-grid">
             <!-- Priority Contacts -->
-            <div class="card card-priority" style="margin-bottom: 0; ${priorityContacts.length > 0 ? 'border-left: 4px solid var(--color-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.07), transparent);' : 'opacity: 0.6;'}">
+            <div class="card card-priority" style="margin-bottom: 0; ${priorityContacts.length > 0 ? 'border-left: 5px solid var(--color-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.09), transparent 70%);' : 'opacity: 0.6;'}">
               <h2 class="section-title">
-                <span style="background: ${priorityContacts.length > 0 ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : '#F3F4F6'}; color: ${priorityContacts.length > 0 ? 'white' : '#6B7280'}; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">PRIORITY</span>
-                <span>Contact ASAP</span>
+                <span style="background: ${priorityContacts.length > 0 ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : '#F3F4F6'}; color: ${priorityContacts.length > 0 ? 'white' : '#6B7280'}; padding: 0.25rem 0.5625rem; border-radius: 0.375rem; font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.01em;">PRIORITY</span>
+                <span style="color: var(--color-text-secondary); font-weight: 400;">Contact ASAP</span>
               </h2>
               ${priorityContacts.length > 0 ? `
                 <div class="priority-compact-grid">
@@ -2865,7 +2873,7 @@
             </div>
 
             <!-- Needs Attention -->
-            <div class="card card-attention" style="margin-bottom: 0; ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? 'border-left: 3px solid var(--color-warning);' : 'opacity: 0.6;'}">
+            <div class="card card-attention" style="margin-bottom: 0; ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? 'border-left: 2px solid rgba(245, 158, 11, 0.55);' : 'opacity: 0.6;'}">
               <h2 class="section-title" style="margin-bottom: 0.25rem;">Needs Attention</h2>
               ${(needsAttentionProfessional.length > 0 || needsAttentionPersonal.length > 0) ? `
                 <div class="needs-attention-grid">
@@ -2975,18 +2983,18 @@
               <h2 class="section-title">Quick Stats</h2>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
                 <!-- Contacts column -->
-                <div style="display: flex; flex-direction: column; gap: 3px; padding-right: 0.875rem; border-right: 1px solid rgba(107,114,128,0.2);">
-                  <div style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">Contacts</div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> total</span></div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${professionalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> professional</span></div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${personalContacts}</span><span class="text-muted" style="font-size: 0.75rem;"> personal</span></div>
+                <div style="display: flex; flex-direction: column; gap: 5px; padding-right: 0.875rem; border-right: 1px solid rgba(107,114,128,0.15);">
+                  <div style="font-size: 0.65rem; font-weight: 600; color: var(--color-text-secondary); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0;">Contacts</div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${totalContacts}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> total</span></div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${professionalContacts}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> professional</span></div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${personalContacts}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> personal</span></div>
                 </div>
                 <!-- Interactions column -->
-                <div style="display: flex; flex-direction: column; gap: 3px; padding-left: 0.875rem;">
-                  <div style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.0625rem;">Interactions</div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> total</span></div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${ytdInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> YTD</span></div>
-                  <div style="line-height: 1.3;"><span style="font-size: 1rem; font-weight: 700; color: var(--color-primary);">${l7dInteractions}</span><span class="text-muted" style="font-size: 0.75rem;"> L7D</span></div>
+                <div style="display: flex; flex-direction: column; gap: 5px; padding-left: 0.875rem;">
+                  <div style="font-size: 0.65rem; font-weight: 600; color: var(--color-text-secondary); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0;">Interactions</div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${totalInteractions}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> total</span></div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${ytdInteractions}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> YTD</span></div>
+                  <div style="line-height: 1.15;"><span style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">${l7dInteractions}</span><span style="font-size: 0.65rem; color: var(--color-text-secondary); opacity: 0.6;"> L7D</span></div>
                 </div>
               </div>
             </div>
