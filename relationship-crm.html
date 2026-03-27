@@ -480,6 +480,18 @@
       transform: translateY(-2px);
     }
 
+    /* Flat card variant — keeps base structure, removes elevation and perimeter border */
+    .card-flat {
+      box-shadow: none !important;
+      border-color: transparent !important;
+    }
+
+    .card-flat:hover {
+      box-shadow: none !important;
+      transform: none !important;
+      background: var(--color-surface) !important;
+    }
+
     .card-clickable {
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3446,6 +3458,8 @@
       const status = getContactStatus(contact.id);
       const statusText = days === null ? 'Never contacted' : days === 0 ? 'Last contact: Today' : days === 1 ? 'Last contact: Yesterday' : `Last contact: ${days} days ago`;
       const interactions = getInteractionsByContact(contact.id);
+      const statusBorderColor = {never: 'rgba(107,114,128,0.18)', recent: 'rgba(5,150,105,0.25)', caution: 'rgba(245,158,11,0.35)', warning: 'rgba(234,88,12,0.48)', overdue: 'rgba(220,38,38,0.58)'}[status] || 'var(--color-border)';
+      const statusTextColor = {never: 'rgba(107,114,128,0.6)', recent: 'rgba(5,150,105,0.75)', caution: 'rgba(245,158,11,0.85)', warning: 'rgba(234,88,12,0.9)', overdue: 'rgba(220,38,38,0.95)'}[status] || 'var(--color-text-secondary)';
 
       app.innerHTML = `
         <div class="view">
@@ -3483,12 +3497,12 @@
           </div>
 
           <!-- Contact Info Card -->
-          <div class="card mb-lg" style="border-left: 4px solid var(--color-${status});">
+          <div class="card card-flat mb-lg" style="border-left: 4px solid ${statusBorderColor};">
             <!-- Status Badge -->
-            <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--color-background); border-radius: var(--border-radius);">
-                <span class="status-dot status-${status}"></span>
-                <span style="color: var(--color-${status}); font-weight: 600; font-size: 0.8125rem;">${statusText}</span>
+            <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; background: rgba(0,0,0,0.03); border-radius: var(--border-radius);">
+                <span class="status-dot status-${status}" style="width: 7px; height: 7px; opacity: 0.7; animation: none; box-shadow: none;"></span>
+                <span style="color: ${statusTextColor}; font-weight: 600; font-size: 0.8125rem;">${statusText}</span>
               </div>
             </div>
 
@@ -3556,7 +3570,7 @@
 
           ${contact.notes ? `
             <!-- Notes -->
-            <div class="card mb-lg">
+            <div class="card card-flat mb-lg">
               <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); color: var(--color-text-secondary);">Notes</h3>
               <p style="white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">${escapeHtml(contact.notes)}</p>
             </div>
@@ -3568,7 +3582,7 @@
           </button>
 
           <!-- Interaction History -->
-          <div class="card">
+          <div class="card card-flat">
             <h2 class="mb-md">Interaction History (${interactions.length})</h2>
             ${interactions.length === 0 ? `
               <div class="empty-state" style="padding: 1rem;">
@@ -3576,10 +3590,11 @@
                 <p class="text-muted text-small">Click "Log Interaction" above to record your first conversation with this contact.</p>
               </div>
             ` : `
-              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                ${interactions.map(interaction => {
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${interactions.map((interaction, idx) => {
                   const isFuture = isFutureDate(interaction.date);
-                  const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
+                  const isLast = idx === interactions.length - 1;
+                  const borderStyle = isFuture ? 'border-left: 2px solid rgba(37, 99, 235, 0.3); padding-left: 0.5rem;' : 'border-left: 2px solid transparent;';
                   const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
                   // Check if this contact was tagged (vs being the primary contact)
                   const isTagged = interaction.contactId !== contact.id;
@@ -3598,7 +3613,7 @@
                     });
                   }
                   return `
-                    <div class="card" style="padding: 1rem; margin: 0; position: relative; ${borderStyle}">
+                    <div class="card card-flat" style="padding: 0.5rem 0.625rem; margin: 0; position: relative; border-radius: 0; ${borderStyle}">
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
                         <div style="font-weight: 600; font-size: 0.9375rem; ${isFuture ? 'color: var(--color-primary);' : ''}">${typeLabel}</div>
                         <div style="display: flex; gap: 0.5rem;">
@@ -3621,10 +3636,10 @@
                       </div>
                       <div class="text-muted text-small" style="${isFuture ? 'color: var(--color-primary); font-weight: 500;' : ''}">${formatDate(interaction.date)} (${formatRelativeDate(interaction.date)})</div>
                       ${allParticipants.length > 0 ? `<div style="margin-top: 0.375rem; font-size: 0.75rem; color: var(--color-text-secondary);">Also with: ${allParticipants.map(name => escapeHtml(name)).join(', ')}</div>` : ''}
-                      ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
+                      ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem;">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                     </div>
                   `;
-                }).join('')}
+                }).join('<hr style="border: none; border-top: 1px solid rgba(107,114,128,0.32); margin: 0 0.625rem;">')}
               </div>
             `}
           </div>
