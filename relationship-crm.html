@@ -781,7 +781,23 @@
       margin-top: 0;
       margin-bottom: 0.5rem;
     }
-    
+
+    /* Dashboard feed-row tooltip: body-level singleton, positioned by JS.
+       Lives outside any transformed ancestor so position:fixed + viewport
+       coords from getBoundingClientRect() always agree. */
+    #feed-row-tooltip {
+      position: fixed;
+      display: none;
+      width: 280px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: 0.5rem 0.625rem;
+      box-shadow: var(--shadow-lg);
+      z-index: 200;
+      pointer-events: none;
+    }
+
     /* Contact card upcoming interaction tooltip */
     .upcoming-indicator {
       position: relative;
@@ -1796,13 +1812,20 @@
         border-radius: 0.1875rem;
         cursor: pointer;
         min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         line-height: 1.45;
         transition: background 0.1s ease;
         margin-bottom: 0;
         border-bottom: 1px solid rgba(107, 114, 128, 0.14);
+        position: relative;
+        overflow: visible;
+      }
+
+      /* Inner text wrapper preserves ellipsis without clipping the tooltip */
+      .activity-feed-row-text {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .activity-feed-row:hover {
@@ -2011,6 +2034,9 @@
   <!-- Toast notifications container -->
   <div id="toast-container"></div>
 
+  <!-- Activity feed row tooltip: body-level so position:fixed is unaffected by card transforms -->
+  <div id="feed-row-tooltip"></div>
+
   <!-- Interaction Modal -->
   <div id="interaction-modal" class="modal-overlay" onclick="if(event.target === this) closeInteractionModal()">
     <div class="modal">
@@ -2138,20 +2164,26 @@
       // Future dates
       if (diffDays > 0) {
         if (diffDays === 1) return 'Tomorrow';
-        if (diffDays < 7) return `In ${diffDays} days`;
-        if (diffDays < 30) return `In ${Math.floor(diffDays / 7)} weeks`;
-        if (diffDays < 365) return `In ${Math.floor(diffDays / 30)} months`;
-        return `In ${Math.floor(diffDays / 365)} years`;
+        if (diffDays < 7) return `In ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+        const fWeeks = Math.floor(diffDays / 7);
+        if (diffDays < 30) return `In ${fWeeks} week${fWeeks === 1 ? '' : 's'}`;
+        const fMonths = Math.floor(diffDays / 30);
+        if (diffDays < 365) return `In ${fMonths} month${fMonths === 1 ? '' : 's'}`;
+        const fYears = Math.floor(diffDays / 365);
+        return `In ${fYears} year${fYears === 1 ? '' : 's'}`;
       }
 
       // Past dates
       const daysAgo = Math.abs(diffDays);
       if (daysAgo === 0) return 'Today';
       if (daysAgo === 1) return 'Yesterday';
-      if (daysAgo < 7) return `${daysAgo} days ago`;
-      if (daysAgo < 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
-      if (daysAgo < 365) return `${Math.floor(daysAgo / 30)} months ago`;
-      return `${Math.floor(daysAgo / 365)} years ago`;
+      if (daysAgo < 7) return `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`;
+      const weeks = Math.floor(daysAgo / 7);
+      if (daysAgo < 30) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+      const months = Math.floor(daysAgo / 30);
+      if (daysAgo < 365) return `${months} month${months === 1 ? '' : 's'} ago`;
+      const years = Math.floor(daysAgo / 365);
+      return `${years} year${years === 1 ? '' : 's'} ago`;
     }
 
     function isFutureDate(date) {
@@ -2985,8 +3017,8 @@
                           ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
-                          <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span>
+                          <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span></span>
                           </div>
                         `;
                       }).join('')}
@@ -3012,8 +3044,8 @@
                           ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
-                          <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}" onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span>
+                          <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatRelativeDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
+                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span></span>
                           </div>
                         `;
                       }).join('')}
@@ -5729,25 +5761,89 @@
         }
       });
 
-      // Activity tooltip positioning
+      // Activity feed row tooltip: body-level singleton.
+      // The #feed-row-tooltip element is a direct child of <body>, so
+      // position:fixed always resolves against the viewport — no transformed
+      // ancestor card can shift its coordinate space.
+      const feedRowTooltip = document.getElementById('feed-row-tooltip');
+
+      document.addEventListener('mouseenter', (e) => {
+        const row = e.target.closest('.activity-feed-row[data-notes]');
+        if (!row || !feedRowTooltip) return;
+
+        const notes = row.dataset.notes;
+        const meta = row.dataset.meta || '';
+        const cap = 160;
+        const truncated = notes.length > cap ? notes.slice(0, cap).trimEnd() + '…' : notes;
+        feedRowTooltip.innerHTML =
+          '<div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:0.2rem;">' + escapeHtml(meta) + '</div>' +
+          '<div style="font-size:0.8125rem;line-height:1.5;">' + escapeHtmlPreserveNewlines(truncated) + '</div>';
+
+        // Measure actual rendered height before committing position
+        feedRowTooltip.style.visibility = 'hidden';
+        feedRowTooltip.style.display = 'block';
+        const tooltipH = feedRowTooltip.offsetHeight;
+        feedRowTooltip.style.display = 'none';
+        feedRowTooltip.style.visibility = '';
+
+        const rowRect = row.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const tw = 280;
+        const gap = 3;
+
+        // Horizontal: anchor to the hovered row's own left edge, then clamp
+        // so the tooltip never bleeds past the viewport or the Activity card.
+        const activityCardH = row.closest('.card-activity');
+        const cardRectH = activityCardH ? activityCardH.getBoundingClientRect() : null;
+        const maxLeft = cardRectH ? cardRectH.right - tw - 4 : vw - tw - 8;
+        const minLeft = cardRectH ? cardRectH.left + 4 : 0;
+        const left = Math.max(minLeft, Math.min(rowRect.left, maxLeft));
+
+        // Vertical: default below the row; flip above only when there is
+        // genuinely not enough room below (conservative threshold).
+        const spaceBelow = vh - rowRect.bottom - gap;
+        let top;
+        if (spaceBelow >= tooltipH) {
+          top = rowRect.bottom + gap;
+        } else if (rowRect.top - gap >= tooltipH) {
+          top = rowRect.top - tooltipH - gap;
+        } else {
+          // Neither fits cleanly; prefer below
+          top = rowRect.bottom + gap;
+        }
+
+        // Clamp vertically to the Activity card's bounds so the tooltip never
+        // drifts into adjacent dashboard sections.
+        if (cardRectH) {
+          top = Math.max(cardRectH.top + 4, Math.min(top, cardRectH.bottom - tooltipH - 4));
+        }
+
+        feedRowTooltip.style.left = left + 'px';
+        feedRowTooltip.style.top = top + 'px';
+        feedRowTooltip.style.display = 'block';
+      }, true);
+
+      document.addEventListener('mouseleave', (e) => {
+        const row = e.target.closest('.activity-feed-row[data-notes]');
+        if (row && feedRowTooltip) {
+          feedRowTooltip.style.display = 'none';
+        }
+      }, true);
+
+      // Original tooltip-above positioning for any legacy .activity-item usage
       document.addEventListener('mouseenter', (e) => {
         const activityItem = e.target.closest('.activity-item');
-        if (activityItem && activityItem.querySelector('.activity-tooltip')) {
-          const rect = activityItem.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          const tooltip = activityItem.querySelector('.activity-tooltip');
-          
-          // Estimate tooltip height (300px is generous estimate)
-          const estimatedTooltipHeight = 300;
-          const spaceBelow = viewportHeight - rect.bottom;
-          const spaceAbove = rect.top;
-          
-          // Show above if there's not enough space below OR if we're in the bottom 40% of viewport
-          if (spaceBelow < estimatedTooltipHeight || rect.top > viewportHeight * 0.6) {
-            activityItem.classList.add('tooltip-above');
-          } else {
-            activityItem.classList.remove('tooltip-above');
-          }
+        if (!activityItem || activityItem.classList.contains('activity-feed-row')) return;
+        const tooltip = activityItem.querySelector('.activity-tooltip');
+        if (!tooltip) return;
+        const rect = activityItem.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const spaceBelow = vh - rect.bottom;
+        if (spaceBelow < 300 || rect.top > vh * 0.6) {
+          activityItem.classList.add('tooltip-above');
+        } else {
+          activityItem.classList.remove('tooltip-above');
         }
       }, true);
 
