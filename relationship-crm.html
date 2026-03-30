@@ -2118,7 +2118,10 @@
     // Date formatting
     // Parse YYYY-MM-DD string as local date (avoids timezone issues)
     function parseLocalDate(dateStr) {
-      const [year, month, day] = dateStr.split('-').map(Number);
+      if (!dateStr || typeof dateStr !== 'string') return null;
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return null;
+      const [year, month, day] = parts;
       return new Date(year, month - 1, day);
     }
 
@@ -2138,16 +2141,18 @@
 
     function formatDate(date) {
       const d = parseLocalDate(date);
+      if (!d) return '—';
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
-    
+
     function formatDateShort(date) {
       const d = typeof date === 'string' ? parseLocalDate(date) : date;
+      if (!d || isNaN(d.getTime())) return '—';
       const now = new Date();
       now.setHours(0, 0, 0, 0);
       const diffTime = d - now;
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return 'Today';
       if (diffDays === 1) return 'Tomorrow';
       if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -2158,6 +2163,7 @@
       const now = new Date();
       now.setHours(0, 0, 0, 0);
       const then = parseLocalDate(date);
+      if (!then) return '—';
       const diffTime = then - now;
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
@@ -2187,9 +2193,10 @@
     }
 
     function isFutureDate(date) {
+      const then = parseLocalDate(date);
+      if (!then) return false;
       const now = new Date();
       now.setHours(0, 0, 0, 0);
-      const then = parseLocalDate(date);
       return then > now;
     }
     
@@ -2206,10 +2213,13 @@
       
       if (upcomingInteractions.length === 0) return null;
       
-      // Sort by date (earliest first)
+      // Sort by date (earliest first); treat null dates as lowest priority
       upcomingInteractions.sort((a, b) => {
         const dateA = parseLocalDate(a.date);
         const dateB = parseLocalDate(b.date);
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
         return dateA - dateB;
       });
       
@@ -2320,18 +2330,62 @@
           AppState.linkedinData = data.linkedinData || [];
           AppState.enrichmentConflicts = data.enrichmentConflicts || [];
         }
+
+        // Mark load complete regardless of whether the doc exists (new user is valid).
+        // Only a caught error should leave _initialLoadComplete false.
+        _initialLoadComplete = true;
+        _hadDataOnLoad = AppState.contacts.length > 0 || AppState.interactions.length > 0;
+
+        // Persist a localStorage snapshot on every successful load with real data.
+        // This is the restore point if Firestore is ever overwritten again.
+        if (_hadDataOnLoad) {
+          try {
+            localStorage.setItem('crm-last-known-good', JSON.stringify({
+              savedAt: new Date().toISOString(),
+              contacts: AppState.contacts,
+              interactions: AppState.interactions,
+              contactCount: AppState.contacts.length,
+              interactionCount: AppState.interactions.length
+            }));
+          } catch (e) {
+            console.warn('Could not write localStorage backup:', e);
+          }
+        }
       } catch (error) {
+        // _initialLoadComplete stays false — saveState() will be blocked below
         console.error('Error loading data from Firestore:', error);
-        showToast('Error loading data', 'error');
+        showToast('Error loading data. Your data has NOT been modified.', 'error');
       }
     }
 
     // Save data to Firestore (debounced to prevent race conditions)
     let _saveTimeout = null;
     let _saveInFlight = false;
+    // Safety flags: set by loadState() on first successful read.
+    // saveState() checks these before writing so a failed load can never
+    // be followed by an empty-state overwrite.
+    let _initialLoadComplete = false;
+    let _hadDataOnLoad = false;
 
     async function saveState() {
       if (!currentUser) return;
+
+      // SAFETY GUARD 1: Block all writes until the initial Firestore load completes.
+      // If loadState() threw an error, _initialLoadComplete is false and AppState
+      // is still empty — writing it would overwrite real remote data with nothing.
+      if (!_initialLoadComplete) {
+        console.warn('saveState() blocked: initial Firestore load has not completed successfully.');
+        return;
+      }
+
+      // SAFETY GUARD 2: Refuse to write empty contacts/interactions when we know
+      // the remote had data. Catches any future code path that clears AppState
+      // accidentally before saving.
+      if (AppState.contacts.length === 0 && AppState.interactions.length === 0 && _hadDataOnLoad) {
+        console.error('saveState() BLOCKED: refusing to overwrite non-empty remote data with empty local state. Reload to resync.');
+        showToast('Safety check blocked an empty save. Please reload the page.', 'error');
+        return;
+      }
 
       // Clear any pending save — we'll save with the latest state
       if (_saveTimeout) clearTimeout(_saveTimeout);
@@ -2366,20 +2420,52 @@
     function setupRealtimeSync() {
       if (!currentUser) return;
 
+      // Always unsubscribe any existing listener first.
+      // onAuthStateChanged fires on every hourly token refresh — without this,
+      // each refresh leaks a duplicate snapshot listener.
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
       const userDocRef = doc(db, 'users', currentUser.uid);
-      
-      unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+
+      // Tracks whether this is the very first snapshot delivery after attaching
+      // the listener. The startup guard below only applies to the first snapshot
+      // so that legitimate multi-device "all contacts deleted" events after
+      // startup are not blocked.
+      let firstSnapshot = true;
+
+      unsubscribeSnapshot = onSnapshot(userDocRef, (snapshot) => {
         // Skip snapshot updates while we have a save in-flight or pending
         // to prevent overwriting local state with stale data
         if (_saveInFlight || _saveTimeout) return;
 
-        if (doc.exists()) {
-          const data = doc.data();
-          AppState.contacts = data.contacts || [];
-          AppState.interactions = data.interactions || [];
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const incomingContacts = data.contacts || [];
+          const incomingInteractions = data.interactions || [];
+
+          // STARTUP SAFETY GUARD: Ignore an empty first snapshot when local state
+          // already has data. This catches the scenario where a bad empty write
+          // propagates during the startup window before loadState() has settled.
+          // After the first snapshot is processed, this guard is disabled —
+          // subsequent empty snapshots represent legitimate remote state changes
+          // (e.g. another device clearing all contacts).
+          if (firstSnapshot &&
+              incomingContacts.length === 0 && incomingInteractions.length === 0 &&
+              (AppState.contacts.length > 0 || AppState.interactions.length > 0)) {
+            console.warn('onSnapshot: ignoring empty initial snapshot — startup propagation guard. Local state preserved.');
+            firstSnapshot = false;
+            return;
+          }
+          firstSnapshot = false;
+
+          AppState.contacts = incomingContacts;
+          AppState.interactions = incomingInteractions;
           AppState.linkedinData = data.linkedinData || [];
           AppState.enrichmentConflicts = data.enrichmentConflicts || [];
-          
+
           // Re-render current view to show updated data
           renderCurrentView();
         }
@@ -2626,6 +2712,7 @@
 
       const mostRecent = pastInteractions.reduce((latest, current) => {
         const currentDate = parseLocalDate(current.date);
+        if (!currentDate) return latest;
         return currentDate > latest ? currentDate : latest;
       }, new Date(0));
 
@@ -2634,6 +2721,9 @@
 
     // Recalculate lastContactedAt for all contacts (batch — single save at end)
     function recalculateAllLastContactedDates() {
+      // Don't save if there are no contacts — avoids saving empty state on a
+      // failed load (belt-and-suspenders alongside the saveState() guard).
+      if (AppState.contacts.length === 0) return;
       AppState.contacts.forEach(contact => {
         updateContactLastInteraction(contact.id, true); // skip individual saves
       });
@@ -2648,6 +2738,7 @@
 
       const now = new Date();
       const lastContact = new Date(contact.lastContactedAt);
+      if (isNaN(lastContact.getTime())) return null;
       const diffTime = Math.abs(now - lastContact);
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
@@ -4751,6 +4842,9 @@
             showToast(`Imported ${data.contacts.length} contacts and ${data.interactions.length} interactions`);
           }
 
+          // Allow saveState() to proceed — this is a deliberate user-initiated import
+          _initialLoadComplete = true;
+          _hadDataOnLoad = AppState.contacts.length > 0;
           saveState();
           renderCurrentView();
 
@@ -4940,10 +5034,13 @@
 
             <!-- Import Section -->
             <div style="margin-bottom: 1rem;">
-              <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.5rem;">Import</h3>
+              <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.5rem;">Import / Restore</h3>
               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-block" onclick="restoreFromLocalBackup()">
+                  Restore from Last Local Backup
+                </button>
                 <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-file').click()">
-                  Import JSON (Restore Backup)
+                  Import JSON (Restore from File)
                 </button>
                 <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
                 <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-csv-file').click()">
@@ -5438,6 +5535,46 @@
       }
     }
 
+    // Restore from the localStorage snapshot written by loadState().
+    // This is the fast path if Firestore data is wiped and you need to recover
+    // without hunting for a downloaded JSON file.
+    function restoreFromLocalBackup() {
+      try {
+        const raw = localStorage.getItem('crm-last-known-good');
+        if (!raw) {
+          showToast('No local backup found on this device.', 'error');
+          return;
+        }
+        const backup = JSON.parse(raw);
+        if (!backup.contacts || !Array.isArray(backup.contacts)) {
+          showToast('Local backup appears corrupted.', 'error');
+          return;
+        }
+        const savedAt = backup.savedAt ? new Date(backup.savedAt).toLocaleString() : 'unknown time';
+        const contactCount = backup.contactCount || backup.contacts.length;
+        const interactionCount = backup.interactionCount || (backup.interactions || []).length;
+        const confirmed = confirm(
+          `Restore from local backup?\n\n` +
+          `${contactCount} contacts · ${interactionCount} interactions\n` +
+          `Saved: ${savedAt}\n\n` +
+          `This will OVERWRITE your current Firestore data.`
+        );
+        if (!confirmed) return;
+
+        AppState.contacts = backup.contacts;
+        AppState.interactions = backup.interactions || [];
+        // Allow saveState() to proceed — this is an intentional restore
+        _initialLoadComplete = true;
+        _hadDataOnLoad = AppState.contacts.length > 0;
+        saveState();
+        renderCurrentView();
+        showToast(`Restored ${AppState.contacts.length} contacts from local backup.`);
+      } catch (e) {
+        console.error('Restore error:', e);
+        showToast('Error restoring from local backup.', 'error');
+      }
+    }
+
     function checkAutoBackup() {
       // Only backup if there's data to backup
       if (AppState.contacts.length === 0) return;
@@ -5869,6 +6006,7 @@
         deleteInteraction,
         exportData,
         importData,
+        restoreFromLocalBackup,
         importCSV,
         clearAllData,
         handleGoogleSignIn,
