@@ -2059,7 +2059,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import {
       getAuth,
-      signInWithPopup,
       signInWithRedirect,
       getRedirectResult,
       GoogleAuthProvider,
@@ -2275,28 +2274,15 @@
     async function handleGoogleSignIn() {
       try {
         const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        currentUser = result.user;
-        showToast(`Welcome, ${result.user.displayName}!`, 'success');
+        // Mark that a redirect is in progress so the return page shows a
+        // loading state instead of the login screen while Firebase resolves auth.
+        sessionStorage.setItem('crm-redirect-pending', '1');
+        await signInWithRedirect(auth, provider);
+        // Page navigates away; onAuthStateChanged handles the result on return.
       } catch (error) {
-        // Safari (and browsers with strict popup blocking) returns one of these
-        // two codes when the popup is suppressed or interrupted. Fall back to
-        // redirect flow. All other error codes surface normally — do not catch
-        // broadly, as that would mask real auth failures.
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-          console.warn('Popup blocked or cancelled — falling back to redirect sign-in:', error.code);
-          try {
-            const provider = new GoogleAuthProvider();
-            await signInWithRedirect(auth, provider);
-            // Page will reload after redirect; onAuthStateChanged handles the result.
-          } catch (redirectError) {
-            console.error('Redirect sign-in error:', redirectError);
-            showToast('Sign-in failed. Please try again.', 'error');
-          }
-        } else {
-          console.error('Sign-in error:', error);
-          showToast('Sign-in failed. Please try again.', 'error');
-        }
+        sessionStorage.removeItem('crm-redirect-pending');
+        console.error('Sign-in error:', error);
+        showToast('Sign-in failed. Please try again.', 'error');
       }
     }
 
@@ -5822,11 +5808,25 @@
         return;
       }
 
-      // Show login screen immediately while waiting for Firebase to initialize
-      try {
-        renderLoginScreen();
-      } catch (error) {
-        console.error('❌ Error rendering login screen:', error);
+      // If returning from a signInWithRedirect, show a neutral loading state
+      // instead of the login screen so there is no signed-out flash while
+      // Firebase resolves the auth result. The flag is set in handleGoogleSignIn
+      // before the redirect and cleared in onAuthStateChanged on return.
+      const redirectPending = sessionStorage.getItem('crm-redirect-pending');
+      if (redirectPending) {
+        const appEl = document.getElementById('app');
+        if (appEl) {
+          appEl.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - var(--nav-height));color:var(--color-text-secondary);font-size:0.9375rem;">
+              Signing in…
+            </div>`;
+        }
+      } else {
+        try {
+          renderLoginScreen();
+        } catch (error) {
+          console.error('❌ Error rendering login screen:', error);
+        }
       }
 
       // Check whether we just returned from a signInWithRedirect flow.
@@ -5839,13 +5839,16 @@
       // Set up Firebase authentication listener
       onAuthStateChanged(auth, async (user) => {
         try {
+          // Clear redirect flag on every auth state resolution —
+          // whether sign-in succeeded, failed, or the user was already signed in.
+          sessionStorage.removeItem('crm-redirect-pending');
           currentUser = user;
-          
+
           if (user) {
             await loadState();
             setupRealtimeSync();
             recalculateAllLastContactedDates();
-            
+
             AppState.currentView = 'dashboard';
             updateUserMenuDisplay();
             renderCurrentView();
