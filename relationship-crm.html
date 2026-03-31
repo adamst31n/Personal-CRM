@@ -2059,6 +2059,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import {
       getAuth,
+      signInWithPopup,
       signInWithRedirect,
       getRedirectResult,
       GoogleAuthProvider,
@@ -2274,15 +2275,27 @@
     async function handleGoogleSignIn() {
       try {
         const provider = new GoogleAuthProvider();
-        // Mark that a redirect is in progress so the return page shows a
-        // loading state instead of the login screen while Firebase resolves auth.
-        sessionStorage.setItem('crm-redirect-pending', '1');
-        await signInWithRedirect(auth, provider);
-        // Page navigates away; onAuthStateChanged handles the result on return.
+        const result = await signInWithPopup(auth, provider);
+        currentUser = result.user;
+        showToast(`Welcome, ${result.user.displayName}!`, 'success');
       } catch (error) {
-        sessionStorage.removeItem('crm-redirect-pending');
-        console.error('Sign-in error:', error);
-        showToast('Sign-in failed. Please try again.', 'error');
+        // Fall back to redirect only if the popup was explicitly blocked or
+        // cancelled. All other errors surface normally.
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+          console.warn('Popup blocked — falling back to redirect sign-in:', error.code);
+          try {
+            const provider = new GoogleAuthProvider();
+            sessionStorage.setItem('crm-redirect-pending', '1');
+            await signInWithRedirect(auth, provider);
+          } catch (redirectError) {
+            sessionStorage.removeItem('crm-redirect-pending');
+            console.error('Redirect sign-in error:', redirectError);
+            showToast('Sign-in failed. Please try again.', 'error');
+          }
+        } else {
+          console.error('Sign-in error:', error);
+          showToast('Sign-in failed. Please try again.', 'error');
+        }
       }
     }
 

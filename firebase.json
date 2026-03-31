@@ -1,0 +1,33 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      ".git",
+      ".gitignore",
+      "README.md",
+      "Screenshots/**",
+      "tmp/**",
+      "Personal CRM/**",
+      "node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/",
+        "destination": "/relationship-crm.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}
