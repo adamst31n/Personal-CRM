@@ -2057,18 +2057,20 @@
     /* ===== FIREBASE IMPORTS & INITIALIZATION ===== */
     
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-      getAuth, 
-      signInWithPopup, 
+    import {
+      getAuth,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
       GoogleAuthProvider,
       onAuthStateChanged,
-      signOut 
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { 
-      getFirestore, 
-      collection, 
-      doc, 
-      setDoc, 
+    import {
+      initializeFirestore,
+      collection,
+      doc,
+      setDoc,
       getDoc,
       onSnapshot,
       updateDoc
@@ -2087,7 +2089,9 @@
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    // experimentalAutoDetectLongPolling lets the SDK fall back from WebChannel
+    // to long-polling when the transport is unreliable (common in Safari).
+    const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 
     // Authentication state
     let currentUser = null;
@@ -2275,8 +2279,24 @@
         currentUser = result.user;
         showToast(`Welcome, ${result.user.displayName}!`, 'success');
       } catch (error) {
-        console.error('Sign-in error:', error);
-        showToast('Sign-in failed. Please try again.', 'error');
+        // Safari (and browsers with strict popup blocking) returns one of these
+        // two codes when the popup is suppressed or interrupted. Fall back to
+        // redirect flow. All other error codes surface normally — do not catch
+        // broadly, as that would mask real auth failures.
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+          console.warn('Popup blocked or cancelled — falling back to redirect sign-in:', error.code);
+          try {
+            const provider = new GoogleAuthProvider();
+            await signInWithRedirect(auth, provider);
+            // Page will reload after redirect; onAuthStateChanged handles the result.
+          } catch (redirectError) {
+            console.error('Redirect sign-in error:', redirectError);
+            showToast('Sign-in failed. Please try again.', 'error');
+          }
+        } else {
+          console.error('Sign-in error:', error);
+          showToast('Sign-in failed. Please try again.', 'error');
+        }
       }
     }
 
@@ -5808,6 +5828,13 @@
       } catch (error) {
         console.error('❌ Error rendering login screen:', error);
       }
+
+      // Check whether we just returned from a signInWithRedirect flow.
+      // This is a no-op when no redirect is pending (result.user === null).
+      // onAuthStateChanged — not this call — drives loadState() and setupRealtimeSync().
+      getRedirectResult(auth).catch((error) => {
+        console.error('getRedirectResult error:', error);
+      });
 
       // Set up Firebase authentication listener
       onAuthStateChanged(auth, async (user) => {
