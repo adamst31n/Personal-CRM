@@ -4,7 +4,9 @@ I built this because I kept losing touch with people I cared about. The problem 
 
 The whole thing is a single HTML file using Firebase for the backend. No framework, no build process, just vanilla JavaScript.
 
-> **[Try the live demo →](https://adamst31n.github.io/Personal-CRM/demo.html)** — preloaded with sample data, no setup required
+> **[Open the app →](https://personal-crm-31132.firebaseapp.com)** — sign in with Google, your data syncs to the cloud
+>
+> **[Try the demo →](https://adamst31n.github.io/Personal-CRM/demo.html)** — preloaded with sample data, no account needed
 
 ![Dashboard view](Screenshots/dashboard.png)
 
@@ -31,15 +33,17 @@ You add contacts (friends, family, colleagues) and log interactions whenever you
 
 ## Quick Start
 
-There are two ways to try this:
+### Option 1: Hosted app (recommended)
 
-### Option 1: Live demo (no setup)
+**[personal-crm-31132.firebaseapp.com](https://personal-crm-31132.firebaseapp.com)** — sign in with Google and you're ready to go. Data is stored in Firebase and syncs across devices. No setup required.
 
-**[Open the demo →](https://adamst31n.github.io/Personal-CRM/demo.html)** — runs entirely in your browser using localStorage. Comes preloaded with sample contacts so you can explore the full interface without creating an account.
+### Option 2: Demo (no account)
 
-### Option 2: Full version with Firebase (for actual use)
+**[Open the demo →](https://adamst31n.github.io/Personal-CRM/demo.html)** — runs entirely in your browser using localStorage. Preloaded with sample contacts so you can explore the interface without signing in. Data does not persist across sessions.
 
-The full version syncs across devices and persists your data in the cloud. You'll need a free Firebase account.
+### Option 3: Self-host with your own Firebase project
+
+Use your own Firebase backend instead of the hosted version. You'll need a free Firebase account.
 
 <details>
 <summary><strong>Firebase setup instructions</strong></summary>
