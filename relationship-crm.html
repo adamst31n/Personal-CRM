@@ -6011,6 +6011,15 @@
         }
       }, true);
 
+      // Hide tooltip on click — navigating away before mouseleave fires
+      // leaves the tooltip visible on the destination page.
+      document.addEventListener('click', (e) => {
+        const row = e.target.closest('.activity-feed-row[data-notes]');
+        if (row && feedRowTooltip) {
+          feedRowTooltip.style.display = 'none';
+        }
+      }, true);
+
       // Original tooltip-above positioning for any legacy .activity-item usage
       document.addEventListener('mouseenter', (e) => {
         const activityItem = e.target.closest('.activity-item');
