@@ -1,4 +1,4 @@
-"""Personal CRM MCP server — read-only, stdio transport.
+"""Personal CRM MCP server — stdio transport.
 
 Start with:
     python -m mcp_server.server
@@ -16,9 +16,10 @@ load_dotenv()
 
 from mcp.server.fastmcp import FastMCP
 
-from .firestore_client import get_contacts, get_user_data
+from .firestore_client import get_contacts, get_user_data, write_interaction_batch
 from .tools.find_contact import find_contact_impl
 from .tools.get_contact import get_contact_impl
+from .tools.log_interaction import log_interaction_impl
 
 mcp = FastMCP("personal-crm")
 
@@ -62,6 +63,54 @@ def get_contact(contact_id: str) -> dict:
     result = get_contact_impl(contact_id, contacts, interactions)
     if result is None:
         return {"error": f"No contact found with id {contact_id!r}"}
+    return result
+
+
+@mcp.tool()
+def log_interaction(entries: list[dict]) -> dict:
+    """Log one or more interactions — validates, writes to Firestore, returns receipt.
+
+    Accepts a batch of interaction entries.  Validates every entry before
+    touching Firestore — rejects the entire batch if any entry fails.
+
+    On success: appends all new interaction records to the interactions array,
+    updates lastContactedAt for every affected contact (primary and tagged),
+    and returns a receipt showing exactly what was written.
+
+    Args:
+        entries: List of dicts, each with:
+            contactId      (str)    required — UUID from find_contact / get_contact
+            date           (str)    required — YYYY-MM-DD (past or future)
+            type           (str)    required — Call | Text | Email | In-Person |
+                                              Video | LinkedIn
+                                              ("In Person" is accepted as an alias
+                                               for "In-Person"; case-insensitive)
+            notes          (str)    optional
+            taggedContacts ([str])  optional — other contact UUIDs in this interaction
+
+    Returns:
+        On validation error (nothing written):
+            {"valid": False, "errors": [...]}
+        On success (Firestore updated):
+            {
+              "valid": True,
+              "written": True,
+              "new_interactions": [...],
+              "contact_updates": {
+                  "<id>": {
+                      "name": str,
+                      "lastContactedAt_current": str | None,
+                      "lastContactedAt_would_write": str | None,
+                      "lastContactedAt_ms_would_write": int | None
+                  }
+              }
+            }
+    """
+    contacts, interactions = get_user_data()
+    result = log_interaction_impl(entries, contacts, interactions)
+    if result["valid"]:
+        write_interaction_batch(result["new_interactions"], result["contact_updates"])
+        result["written"] = True
     return result
 
 

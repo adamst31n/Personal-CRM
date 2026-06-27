@@ -1,4 +1,4 @@
-"""Firestore connection and data access. Read-only — never writes."""
+"""Firestore connection and data access."""
 
 from __future__ import annotations
 
@@ -58,3 +58,43 @@ def get_user_data() -> tuple[list[dict], list[dict]]:
     """
     data = _read_user_doc()
     return data.get("contacts", []), data.get("interactions", [])
+
+
+def write_user_arrays(contacts: list[dict], interactions: list[dict]) -> None:
+    """Overwrite the contacts and interactions fields in the user's document.
+
+    Other top-level fields (e.g. settings) are left untouched because
+    update() only modifies the specified keys.
+    """
+    db = _init()
+    uid = os.environ.get("CRM_USER_UID")
+    if not uid:
+        raise RuntimeError("CRM_USER_UID env var is not set")
+    db.collection("users").document(uid).update({
+        "contacts": contacts,
+        "interactions": interactions,
+    })
+
+
+def write_interaction_batch(
+    new_interactions: list[dict],
+    contact_updates: dict[str, dict],
+) -> None:
+    """Append new_interactions and write updated lastContactedAt for affected contacts.
+
+    Re-reads the document immediately before writing so the interactions list
+    is fresh.  The lastContactedAt values come from contact_updates (precomputed
+    by log_interaction_impl against the state read at call time).
+    """
+    data = _read_user_doc()
+
+    interactions = list(data.get("interactions", []))
+    interactions.extend(new_interactions)
+
+    contacts = list(data.get("contacts", []))
+    for c in contacts:
+        cid = c.get("id")
+        if cid in contact_updates:
+            c["lastContactedAt"] = contact_updates[cid]["lastContactedAt_ms_would_write"]
+
+    write_user_arrays(contacts, interactions)
