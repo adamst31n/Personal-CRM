@@ -2,6 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
+
+def _ms_to_iso_date(ms: int | None) -> str | None:
+    """Convert epoch milliseconds to YYYY-MM-DD (local time).
+
+    lastContactedAt is stored as epoch ms by the browser (Date.getTime()),
+    where the source date is midnight in the user's local timezone.
+    datetime.fromtimestamp (also local) round-trips correctly.
+    Returning an ISO string prevents the agent from having to do epoch
+    arithmetic, which is where the units mismatch (ms vs seconds) occurred.
+    """
+    if not ms:
+        return None
+    return datetime.fromtimestamp(ms / 1000).strftime("%Y-%m-%d")
+
 
 def find_contact_impl(name: str, contacts: list[dict]) -> list[dict]:
     """Return contacts whose firstName, lastName, or legacy name field
@@ -34,7 +50,7 @@ def find_contact_impl(name: str, contacts: list[dict]) -> list[dict]:
                 "id": c.get("id"),
                 "name": full_name or legacy,
                 "relationshipType": c.get("relationshipType"),
-                "lastContactedAt": c.get("lastContactedAt"),
+                "lastContactedAt": _ms_to_iso_date(c.get("lastContactedAt")),
             })
 
     return results
