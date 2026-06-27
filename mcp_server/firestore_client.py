@@ -31,8 +31,8 @@ def _init() -> firestore.Client:
     return _db
 
 
-def get_contacts() -> list[dict]:
-    """Return the contacts array from the current user's Firestore document."""
+def _read_user_doc() -> dict:
+    """Single document read; shared by the public getters below."""
     db = _init()
 
     uid = os.environ.get("CRM_USER_UID")
@@ -43,5 +43,18 @@ def get_contacts() -> list[dict]:
     if not doc.exists:
         raise RuntimeError(f"No Firestore document found at users/{uid}")
 
-    data = doc.to_dict() or {}
-    return data.get("contacts", [])
+    return doc.to_dict() or {}
+
+
+def get_contacts() -> list[dict]:
+    """Return the contacts array from the current user's Firestore document."""
+    return _read_user_doc().get("contacts", [])
+
+
+def get_user_data() -> tuple[list[dict], list[dict]]:
+    """Return (contacts, interactions) from a single document read.
+
+    Use this when a tool needs both arrays to avoid paying for two reads.
+    """
+    data = _read_user_doc()
+    return data.get("contacts", []), data.get("interactions", [])
