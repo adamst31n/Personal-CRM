@@ -24,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import datetime
 import json
 import os
 import pathlib
@@ -48,16 +49,17 @@ from claude_agent_sdk import (
 )
 from mcp_server.firestore_client import get_user_data
 
-DEFAULT_PROMPT = "Find the contact named Aaron."
+DEFAULT_PROMPT = "Who should I reach out to this week?"
 PROMPT = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else DEFAULT_PROMPT
 MODEL = "claude-haiku-4-5-20251001"
-MAX_TURNS = 4
+MAX_TURNS = 12
 MCP_COMMAND = "python3.11"
 MCP_ARGS = ["-m", "mcp_server.server"]
 
 # Absolute path to the project root so both the CLI subprocess and the MCP
 # server subprocess can find mcp_server/ as a package regardless of CWD drift.
 PROJECT_ROOT = pathlib.Path(__file__).parent.resolve()
+CONTEXT_FILE = PROJECT_ROOT / "agent-context.md"
 
 
 def _fmt_name(c: dict) -> str:
@@ -65,6 +67,26 @@ def _fmt_name(c: dict) -> str:
     first = (c.get("firstName") or "").strip()
     last = (c.get("lastName") or "").strip()
     return f"{first} {last}".strip() or c.get("name") or c.get("id", "?")
+
+
+def load_system_prompt() -> str:
+    """Load agent-context.md and inject today's date.
+
+    Prompt caching note: this string is passed as the system prompt on every
+    run. Haiku/Sonnet cache system prompts that exceed ~1 024 tokens — the
+    context file easily clears that bar, so the second+ run in a session costs
+    cache-read tokens (much cheaper) rather than cache-write or input tokens.
+    The [SEE WATCHLIST REFERENCE] placeholder is intentionally left; the
+    watchlist wiring is a future step.
+    """
+    if not CONTEXT_FILE.exists():
+        sys.exit(f"ERROR: context file not found: {CONTEXT_FILE}")
+    today = datetime.date.today().isoformat()
+    text = CONTEXT_FILE.read_text(encoding="utf-8")
+    # Resolve the date placeholder embedded in the file's "Placeholders" section.
+    text = text.replace("[CURRENT DATE]", today)
+    # Prepend a prominent date line so it anchors overdue calculations.
+    return f"Today's date: {today}\n\n{text}"
 
 
 def cli_stderr(line: str) -> None:
@@ -101,9 +123,10 @@ def check_startup() -> tuple[str, str]:
     print("=== CRM Agent ===")
     print(f"Model           : {MODEL}")
     print(f"Max turns       : {MAX_TURNS}")
-    print(f"Auto-approved   : find_contact, get_contact (reads, no prompt)")
+    print(f"Auto-approved   : find_contact, get_contact, list_outreach_candidates (reads)")
     print(f"Requires prompt : log_interaction (write — pauses for your yes/no)")
     print(f"Built-ins       : all disallowed (agent restricted to CRM MCP tools)")
+    print(f"Context file    : {CONTEXT_FILE}")
     print(f"MCP server      : {python_path} {' '.join(MCP_ARGS)}")
     print(f"Project root    : {PROJECT_ROOT}")
     print(f"Service acct    : {sa_path}")
@@ -115,6 +138,7 @@ def check_startup() -> tuple[str, str]:
 
 async def main() -> None:
     sa_path, python_path = check_startup()
+    system_prompt = load_system_prompt()
 
     # Pre-load contacts so the permission callback can show names, not UUIDs.
     loop = asyncio.get_running_loop()
@@ -189,9 +213,17 @@ async def main() -> None:
     options = ClaudeAgentOptions(
         model=MODEL,
         max_turns=MAX_TURNS,
+        # System prompt loaded from agent-context.md with today's date injected.
+        # This is where prompt caching attaches on the second run of a session —
+        # the context file exceeds the ~1 024-token cache threshold.
+        system_prompt=system_prompt,
         # Read tools are auto-approved — no prompt, no can_use_tool call.
         # log_interaction is intentionally absent so it triggers can_use_tool.
-        allowed_tools=["mcp__crm__find_contact", "mcp__crm__get_contact"],
+        allowed_tools=[
+            "mcp__crm__find_contact",
+            "mcp__crm__get_contact",
+            "mcp__crm__list_outreach_candidates",
+        ],
         # Remove all built-in tools from context so the agent can only call
         # CRM MCP tools.  disallowed_tools removes them from the model's view
         # entirely (tools=[] was observed to nuke MCP tools too).

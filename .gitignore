@@ -24,6 +24,9 @@ serviceAccount.json
 *.pem
 *.key
 
+# Personal context — contains career/personal detail, never commit
+agent-context.md
+
 # Node (in case you ever add packages)
 node_modules/
 package-lock.json
@@ -36,3 +39,4 @@ __pycache__/
 # Misc
 *.log
 tmp/
+Data/
