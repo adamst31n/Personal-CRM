@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from .firestore_client import get_contacts, get_user_data, write_interaction_batch
 from .tools.find_contact import find_contact_impl
 from .tools.get_contact import get_contact_impl
+from .tools.list_outreach_candidates import list_outreach_candidates_impl
 from .tools.log_interaction import log_interaction_impl
 
 mcp = FastMCP("personal-crm")
@@ -112,6 +113,49 @@ def log_interaction(entries: list[dict]) -> dict:
         write_interaction_batch(result["new_interactions"], result["contact_updates"])
         result["written"] = True
     return result
+
+
+@mcp.tool()
+def list_outreach_candidates(
+    only_overdue: bool = False,
+    only_priority: bool = False,
+    relationship_type: str = "",
+) -> list[dict]:
+    """List non-muted contacts with outreach signals for the agent to weigh.
+
+    Signal-gatherer only — returns raw signals, no score or ranking formula.
+    The agent decides who to reach out to based on these signals plus context
+    it holds (interaction quality, relationship value, user's career context).
+
+    All filters are off by default; combine freely.
+
+    Args:
+        only_overdue:      If True, exclude contacts still within their cadence
+                           window (days_overdue <= 0).  Never-contacted contacts
+                           are always included regardless of this flag.
+        only_priority:     If True, restrict to contacts marked priority=True.
+        relationship_type: If non-empty, restrict to this relationship type
+                           (case-insensitive). E.g. "Friend", "Professional".
+
+    Returns:
+        List of candidates sorted by days_overdue descending (never-contacted
+        floats to the top).  Each candidate has:
+            id               — contact UUID
+            name             — display name
+            relationshipType — e.g. "Friend", "Professional"
+            priority         — bool
+            lastContactedAt  — ISO date string (YYYY-MM-DD) or null
+            effectiveCadence — int, days between contacts (custom or default)
+            daysOverdue      — int (positive=overdue, negative=within cadence)
+                               or null (never contacted)
+    """
+    contacts, _ = get_user_data()
+    return list_outreach_candidates_impl(
+        contacts,
+        only_overdue=only_overdue,
+        only_priority=only_priority,
+        relationship_type=relationship_type or None,
+    )
 
 
 if __name__ == "__main__":
