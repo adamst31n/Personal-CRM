@@ -1224,6 +1224,17 @@
         flex-direction: column !important;
         gap: 1rem !important;
       }
+
+      /* Remove column padding/divider when stacked — aligns both sections flush left */
+      .needs-attention-grid > div {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-right: none !important;
+      }
+
+      /* Activity timestamps: hide long form, show short form on mobile */
+      .activity-ts-long { display: none !important; }
+      .activity-ts-short { display: inline !important; }
       
       /* Contact detail header - stack on mobile */
       .contact-detail-header {
@@ -2194,6 +2205,24 @@
       if (daysAgo < 365) return `${months} month${months === 1 ? '' : 's'} ago`;
       const years = Math.floor(daysAgo / 365);
       return `${years} year${years === 1 ? '' : 's'} ago`;
+    }
+
+    function formatRelativeDateShort(date) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const then = parseLocalDate(date);
+      if (!then) return '—';
+      const diffDays = Math.floor((then - now) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) return 'Tmrw';
+      if (diffDays > 1 && diffDays < 7) return 'In ' + diffDays + 'd';
+      if (diffDays >= 7) return 'In ' + Math.floor(diffDays / 7) + 'w';
+      const ago = Math.abs(diffDays);
+      if (ago === 0) return 'Today';
+      if (ago === 1) return 'Yest';
+      if (ago < 7) return ago + 'd ago';
+      if (ago < 30) return Math.floor(ago / 7) + 'w ago';
+      if (ago < 365) return Math.floor(ago / 30) + 'mo ago';
+      return Math.floor(ago / 365) + 'y ago';
     }
 
     function isFutureDate(date) {
@@ -3174,7 +3203,7 @@
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
                           <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span></span>
+                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
                           </div>
                         `;
                       }).join('')}
@@ -3201,7 +3230,7 @@
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
                           <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatRelativeDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
-                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span></span>
+                            <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
                           </div>
                         `;
                       }).join('')}
