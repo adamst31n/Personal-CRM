@@ -16,7 +16,8 @@ load_dotenv()
 
 from mcp.server.fastmcp import FastMCP
 
-from .firestore_client import get_contacts, get_user_data, write_interaction_batch
+from .firestore_client import get_contacts, get_user_data, write_interaction_batch, write_new_contact
+from .tools.create_contact import create_contact_impl
 from .tools.find_contact import find_contact_impl
 from .tools.get_contact import get_contact_impl
 from .tools.list_outreach_candidates import list_outreach_candidates_impl
@@ -156,6 +157,72 @@ def list_outreach_candidates(
         only_priority=only_priority,
         relationship_type=relationship_type or None,
     )
+
+
+@mcp.tool()
+def create_contact(
+    firstName: str,
+    lastName: str,
+    howWeMet: str,
+    relationshipType: str,
+    company: str = "",
+    position: str = "",
+    industry: str = "",
+    contactFrequency: int | None = None,
+    linkedin: str = "",
+    notes: str = "",
+) -> dict:
+    """Create a new contact — validates, dedup-checks, and writes to Firestore.
+
+    Runs a dedup guard before creating: if any existing contact matches both
+    the proposed firstName and lastName, returns the existing match(es) instead
+    of writing.  The agent should surface "this person may already exist" to the
+    user rather than creating a duplicate.
+
+    Requires agent-layer confirmation before calling (not auto-approved).
+
+    Args:
+        firstName:       required — contact's first name
+        lastName:        required — contact's last name
+        howWeMet:        required — brief context (e.g. "college", "Transom colleague")
+        relationshipType: required — one of: Close Friend, Friend, Family,
+                          Professional, Acquaintance (case-insensitive)
+        company:         optional
+        position:        optional
+        industry:        optional
+        contactFrequency: optional — custom cadence in days (overrides the
+                          default of 30 for friends/family or 60 for professional)
+        linkedin:        optional — LinkedIn profile URL or handle
+        notes:           optional — freeform notes
+
+    Returns:
+        Dedup hit (nothing written):
+            {"duplicate": True, "matches": [...]}
+        Validation error (nothing written):
+            {"valid": False, "errors": [...]}
+        Success (Firestore updated):
+            {"valid": True, "written": True, "new_contact": {...}}
+    """
+    contacts = get_contacts()
+    result = create_contact_impl(
+        {
+            "firstName": firstName,
+            "lastName": lastName,
+            "howWeMet": howWeMet,
+            "relationshipType": relationshipType,
+            "company": company,
+            "position": position,
+            "industry": industry,
+            "contactFrequency": contactFrequency,
+            "linkedin": linkedin,
+            "notes": notes,
+        },
+        contacts,
+    )
+    if result.get("valid"):
+        write_new_contact(result["new_contact"])
+        result["written"] = True
+    return result
 
 
 if __name__ == "__main__":

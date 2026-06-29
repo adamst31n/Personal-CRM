@@ -124,7 +124,7 @@ def check_startup() -> tuple[str, str]:
     print(f"Model           : {MODEL}")
     print(f"Max turns       : {MAX_TURNS}")
     print(f"Auto-approved   : find_contact, get_contact, list_outreach_candidates (reads)")
-    print(f"Requires prompt : log_interaction (write — pauses for your yes/no)")
+    print(f"Requires prompt : log_interaction, create_contact (writes — pause for yes/no)")
     print(f"Built-ins       : all disallowed (agent restricted to CRM MCP tools)")
     print(f"Context file    : {CONTEXT_FILE}")
     print(f"MCP server      : {python_path} {' '.join(MCP_ARGS)}")
@@ -148,38 +148,65 @@ async def main() -> None:
     # ------------------------------------------------------------------ #
     # Permission handler — called by the SDK instead of an interactive    #
     # prompt whenever a tool is NOT in allowed_tools and would normally   #
-    # ask for approval.  Only log_interaction should ever reach here.     #
+    # ask for approval.  Handles log_interaction and create_contact.      #
     # ------------------------------------------------------------------ #
     async def permission_handler(
         tool_name: str,
         tool_input: dict,
         context: ToolPermissionContext,
     ) -> PermissionResultAllow | PermissionResultDeny:
-        if tool_name != "mcp__crm__log_interaction":
+
+        if tool_name == "mcp__crm__log_interaction":
+            entries = tool_input.get("entries") or []
+            print("\n" + "=" * 60, flush=True)
+            print("  WRITE REQUEST — log_interaction", flush=True)
+            print("=" * 60, flush=True)
+            for idx, e in enumerate(entries, 1):
+                cid = e.get("contactId", "")
+                name = contact_map.get(cid, cid or "?")
+                print(f"\n  [{idx}] {name}")
+                print(f"       Date : {e.get('date', '?')}")
+                print(f"       Type : {e.get('type', '?')}")
+                notes = (e.get("notes") or "").strip()
+                if notes:
+                    print(f"       Notes: {notes}")
+                tags = e.get("taggedContacts") or []
+                if tags:
+                    tag_names = ", ".join(contact_map.get(t, t) for t in tags)
+                    print(f"       Also : {tag_names}")
+            print("\n" + "=" * 60, flush=True)
+            deny_msg = "User declined. Acknowledge that the interaction was NOT logged."
+
+        elif tool_name == "mcp__crm__create_contact":
+            first = (tool_input.get("firstName") or "").strip()
+            last = (tool_input.get("lastName") or "").strip()
+            print("\n" + "=" * 60, flush=True)
+            print("  WRITE REQUEST — create_contact", flush=True)
+            print("=" * 60, flush=True)
+            print(f"\n  Name             : {first} {last}".strip())
+            print(f"  Relationship     : {tool_input.get('relationshipType', '?')}")
+            print(f"  How we met       : {tool_input.get('howWeMet', '?')}")
+            for label, key in [
+                ("Company", "company"),
+                ("Position", "position"),
+                ("Industry", "industry"),
+                ("Cadence (days)", "contactFrequency"),
+                ("LinkedIn", "linkedin"),
+            ]:
+                val = tool_input.get(key)
+                if val:
+                    print(f"  {label:<16} : {val}")
+            notes = (tool_input.get("notes") or "").strip()
+            if notes:
+                print(f"  Notes            : {notes}")
+            print("\n" + "=" * 60, flush=True)
+            deny_msg = "User declined. Acknowledge that the contact was NOT created."
+
+        else:
             # Anything else reaching here is unexpected — deny and surface it.
             return PermissionResultDeny(
                 message=f"Unexpected permission request for {tool_name!r}. Denied."
             )
-
-        entries = tool_input.get("entries") or []
-
-        print("\n" + "=" * 60, flush=True)
-        print("  WRITE REQUEST — log_interaction", flush=True)
-        print("=" * 60, flush=True)
-        for idx, e in enumerate(entries, 1):
-            cid = e.get("contactId", "")
-            name = contact_map.get(cid, cid or "?")
-            print(f"\n  [{idx}] {name}")
-            print(f"       Date : {e.get('date', '?')}")
-            print(f"       Type : {e.get('type', '?')}")
-            notes = (e.get("notes") or "").strip()
-            if notes:
-                print(f"       Notes: {notes}")
-            tags = e.get("taggedContacts") or []
-            if tags:
-                tag_names = ", ".join(contact_map.get(t, t) for t in tags)
-                print(f"       Also : {tag_names}")
-        print("\n" + "=" * 60, flush=True)
 
         # run_in_executor keeps the event loop unblocked while waiting for
         # the user to type — input() is a blocking call.
@@ -191,9 +218,7 @@ async def main() -> None:
             return PermissionResultAllow()
 
         print("Rejected — not writing.", flush=True)
-        return PermissionResultDeny(
-            message="User declined. Acknowledge that the interaction was NOT logged."
-        )
+        return PermissionResultDeny(message=deny_msg)
 
     # Pass only the vars the MCP server actually needs, plus PYTHONPATH pinned
     # to the project root so `mcp_server` is importable.

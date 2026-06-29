@@ -76,6 +76,19 @@ def write_user_arrays(contacts: list[dict], interactions: list[dict]) -> None:
     })
 
 
+def write_new_contact(new_contact: dict) -> None:
+    """Append a new contact to the contacts array.
+
+    Re-reads the document immediately before writing so the contacts list
+    is fresh.  Does not touch the interactions array.
+    """
+    data = _read_user_doc()
+    contacts = list(data.get("contacts", []))
+    contacts.append(new_contact)
+    interactions = list(data.get("interactions", []))
+    write_user_arrays(contacts, interactions)
+
+
 def write_interaction_batch(
     new_interactions: list[dict],
     contact_updates: dict[str, dict],
