@@ -2324,22 +2324,38 @@
       }
     }
 
-    // Extract "Connected on LinkedIn: [date]" from notes into the dedicated connectedOn field.
-    // Runs once at load to clean up contacts enriched before the field existed.
+    // Backfill the connectedOn field for any contact that has LinkedIn data but
+    // doesn't have connectedOn set yet. Handles two cases:
+    //   1. Old enrichment appended "Connected on LinkedIn: [date]" to the notes field —
+    //      extract and move it.
+    //   2. Notes were already cleared but the contact matches a LinkedIn record —
+    //      pull the date directly from linkedinData (which is persisted in Firestore).
     function migrateLinkedInNotesToField() {
       const prefix = 'Connected on LinkedIn: ';
       let migrated = false;
 
       AppState.contacts.forEach(contact => {
-        if (!contact.notes || contact.connectedOn) return;
-        if (!contact.notes.includes(prefix)) return;
+        if (contact.connectedOn) return; // already set, nothing to do
 
-        const lines = contact.notes.split('\n');
-        const connectedLine = lines.find(l => l.startsWith(prefix));
-        if (connectedLine) {
-          contact.connectedOn = connectedLine.slice(prefix.length).trim();
-          contact.notes = lines.filter(l => !l.startsWith(prefix)).join('\n').trim();
-          migrated = true;
+        // Case 1: date is embedded in notes text from old enrichment
+        if (contact.notes && contact.notes.includes(prefix)) {
+          const lines = contact.notes.split('\n');
+          const connectedLine = lines.find(l => l.startsWith(prefix));
+          if (connectedLine) {
+            contact.connectedOn = connectedLine.slice(prefix.length).trim();
+            contact.notes = lines.filter(l => !l.startsWith(prefix)).join('\n').trim();
+            migrated = true;
+            return;
+          }
+        }
+
+        // Case 2: notes were cleared but a LinkedIn record exists for this contact
+        if (AppState.linkedinData.length > 0) {
+          const record = findLinkedInData(contact.linkedin, contact);
+          if (record?.connectedOn) {
+            contact.connectedOn = record.connectedOn;
+            migrated = true;
+          }
         }
       });
 
