@@ -3755,12 +3755,18 @@
                   <a href="${escapeHtml(contact.linkedin)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: none; font-size: 0.8125rem;">View Profile →</a>
                 </div>
               ` : ''}
-              ${contact.connectedOn ? `
+              ${(() => {
+                const linkedInPrefix = 'Connected on LinkedIn: ';
+                const connectedOn = contact.connectedOn ||
+                  (contact.notes?.includes(linkedInPrefix)
+                    ? (contact.notes.split('\n').find(l => l.startsWith(linkedInPrefix)) || '').slice(linkedInPrefix.length).trim()
+                    : '');
+                return connectedOn ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Connected</span>
-                  <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">${escapeHtml(contact.connectedOn)}</span>
-                </div>
-              ` : ''}
+                  <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">${escapeHtml(connectedOn)}</span>
+                </div>` : '';
+              })()}
               ${contact.industry ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Industry</span>
@@ -3803,13 +3809,20 @@
             </div>
           </div>
 
-          ${contact.notes ? `
+          ${(() => {
+            const linkedInPrefix = 'Connected on LinkedIn: ';
+            const cleanedNotes = (contact.notes || '')
+              .split('\n')
+              .filter(l => !l.startsWith(linkedInPrefix))
+              .join('\n')
+              .trim();
+            return cleanedNotes ? `
             <!-- Notes -->
             <div class="card card-flat mb-lg">
               <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); color: var(--color-text-secondary);">Notes</h3>
-              <p style="white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">${escapeHtml(contact.notes)}</p>
-            </div>
-          ` : ''}
+              <p style="white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">${escapeHtml(cleanedNotes)}</p>
+            </div>` : '';
+          })()}
 
           <!-- Log Interaction Button -->
           <button class="btn btn-block mb-lg" onclick="openInteractionModal('${contact.id}')">
