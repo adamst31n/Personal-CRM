@@ -3690,6 +3690,13 @@
       const statusBorderColor = {never: 'rgba(107,114,128,0.18)', recent: 'rgba(5,150,105,0.25)', caution: 'rgba(245,158,11,0.35)', warning: 'rgba(234,88,12,0.48)', overdue: 'rgba(220,38,38,0.58)'}[status] || 'var(--color-border)';
       const statusTextColor = {never: 'rgba(107,114,128,0.6)', recent: 'rgba(5,150,105,0.75)', caution: 'rgba(245,158,11,0.85)', warning: 'rgba(234,88,12,0.9)', overdue: 'rgba(220,38,38,0.95)'}[status] || 'var(--color-text-secondary)';
 
+      const _liPrefix = 'Connected on LinkedIn: ';
+      const connectedOnDisplay = contact.connectedOn ||
+        (contact.notes && contact.notes.includes(_liPrefix)
+          ? (contact.notes.split('\n').find(function(l) { return l.startsWith(_liPrefix); }) || '').slice(_liPrefix.length).trim()
+          : '');
+      const notesDisplay = (contact.notes || '').split('\n').filter(function(l) { return !l.startsWith(_liPrefix); }).join('\n').trim();
+
       app.innerHTML = `
         <div class="view">
           <!-- Header: Back button and Actions with absolutely centered name -->
@@ -3755,18 +3762,12 @@
                   <a href="${escapeHtml(contact.linkedin)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: none; font-size: 0.8125rem;">View Profile →</a>
                 </div>
               ` : ''}
-              ${(() => {
-                const linkedInPrefix = 'Connected on LinkedIn: ';
-                const connectedOn = contact.connectedOn ||
-                  (contact.notes?.includes(linkedInPrefix)
-                    ? (contact.notes.split('\n').find(l => l.startsWith(linkedInPrefix)) || '').slice(linkedInPrefix.length).trim()
-                    : '');
-                return connectedOn ? `
+              ${connectedOnDisplay ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Connected</span>
-                  <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">${escapeHtml(connectedOn)}</span>
-                </div>` : '';
-              })()}
+                  <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">${escapeHtml(connectedOnDisplay)}</span>
+                </div>
+              ` : ''}
               ${contact.industry ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Industry</span>
@@ -3809,20 +3810,13 @@
             </div>
           </div>
 
-          ${(() => {
-            const linkedInPrefix = 'Connected on LinkedIn: ';
-            const cleanedNotes = (contact.notes || '')
-              .split('\n')
-              .filter(l => !l.startsWith(linkedInPrefix))
-              .join('\n')
-              .trim();
-            return cleanedNotes ? `
+          ${notesDisplay ? `
             <!-- Notes -->
             <div class="card card-flat mb-lg">
               <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); color: var(--color-text-secondary);">Notes</h3>
-              <p style="white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">${escapeHtml(cleanedNotes)}</p>
-            </div>` : '';
-          })()}
+              <p style="white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">${escapeHtml(notesDisplay)}</p>
+            </div>
+          ` : ''}
 
           <!-- Log Interaction Button -->
           <button class="btn btn-block mb-lg" onclick="openInteractionModal('${contact.id}')">
