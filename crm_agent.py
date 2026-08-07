@@ -49,9 +49,34 @@ from claude_agent_sdk import (
 )
 from mcp_server.firestore_client import get_user_data
 
+import argparse
+
 DEFAULT_PROMPT = "Who should I reach out to this week?"
-PROMPT = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else DEFAULT_PROMPT
-MODEL = "claude-haiku-4-5-20251001"
+
+MODEL_ALIASES = {
+    "haiku":  "claude-haiku-4-5-20251001",
+    "sonnet": "claude-sonnet-5",
+}
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="CRM agent")
+    parser.add_argument(
+        "prompt",
+        nargs="?",                    # optional: no prompt → use the default
+        default=DEFAULT_PROMPT,
+        help="What you want the agent to do",
+    )
+    parser.add_argument(
+        "--model",
+        choices=MODEL_ALIASES.keys(), # only 'haiku' or 'sonnet' accepted
+        default="haiku",              # routine runs stay on cheap Haiku
+        help="Model to use (default: haiku). Use 'sonnet' for drafting.",
+    )
+    return parser.parse_args()
+
+_args = parse_args()
+PROMPT = _args.prompt
+MODEL = MODEL_ALIASES[_args.model]
 MAX_TURNS = 12
 MCP_COMMAND = "python3.11"
 MCP_ARGS = ["-m", "mcp_server.server"]
@@ -238,24 +263,28 @@ async def main() -> None:
     options = ClaudeAgentOptions(
         model=MODEL,
         max_turns=MAX_TURNS,
-        # System prompt loaded from agent-context.md with today's date injected.
-        # This is where prompt caching attaches on the second run of a session —
-        # the context file exceeds the ~1 024-token cache threshold.
         system_prompt=system_prompt,
-        # Read tools are auto-approved — no prompt, no can_use_tool call.
-        # log_interaction is intentionally absent so it triggers can_use_tool.
+
+        # Tell the SDK to look in ~/.claude/ for your skills (that's where
+        # adam-voice lives). Without this, the SDK ignores skills entirely.
+        setting_sources=["user"],
+        # Only load the one skill we want — not ui-review or task-scope.
+        skills=["adam-voice"],
+
+        # Added "Skill" (lets the agent use adam-voice) and "Read" (lets it
+        # open the voice_samples.md file the skill depends on).
         allowed_tools=[
             "mcp__crm__find_contact",
             "mcp__crm__get_contact",
             "mcp__crm__list_outreach_candidates",
+            "Skill",
+            "Read",
         ],
-        # Remove all built-in tools from context so the agent can only call
-        # CRM MCP tools.  disallowed_tools removes them from the model's view
-        # entirely (tools=[] was observed to nuke MCP tools too).
+        # "Skill" and "Read" removed from here so they're no longer blocked.
         disallowed_tools=[
             "Agent", "Bash", "Edit", "Explore", "Glob", "Grep",
-            "MultiEdit", "NotebookEdit", "NotebookRead", "Read",
-            "Skill", "Task", "TodoWrite", "WebFetch", "WebSearch", "Write",
+            "MultiEdit", "NotebookEdit", "NotebookRead",
+            "Task", "TodoWrite", "WebFetch", "WebSearch", "Write",
         ],
         # "default" permission mode: tools in allowed_tools are auto-approved;
         # everything else triggers can_use_tool instead of an interactive prompt.
