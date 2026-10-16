@@ -3,11 +3,11 @@
 Runs three scenarios:
 
   1. NEW CONTACT — valid new person, shows the would-write contact record
-  2. DEDUP CATCH — "Aaron Farkas" already exists; guard fires, no creation
+  2. DEDUP CATCH — an existing contact (name given on the command line); guard fires, no creation
   3. INVALID FIELDS — missing required fields + bad relationshipType
 
 Usage:
-    python3.11 scripts/dry_run_create_contact.py
+    python3.11 scripts/dry_run_create_contact.py <EXISTING_FIRST_NAME> <EXISTING_LAST_NAME>
 """
 
 from __future__ import annotations
@@ -33,6 +33,10 @@ def _section(title: str) -> None:
 
 
 def main() -> None:
+    if len(sys.argv) < 3:
+        sys.exit("Usage: python3.11 scripts/dry_run_create_contact.py <EXISTING_FIRST_NAME> <EXISTING_LAST_NAME>")
+    existing_first, existing_last = sys.argv[1], sys.argv[2]
+
     print("Fetching contacts from Firestore...")
     contacts = get_contacts()
     print(f"{len(contacts)} contacts loaded.")
@@ -57,13 +61,13 @@ def main() -> None:
     print(json.dumps(result, indent=2))
 
     # ------------------------------------------------------------------ #
-    # Scenario 2: dedup guard — Aaron Farkas already exists              #
+    # Scenario 2: dedup guard — the named contact already exists         #
     # ------------------------------------------------------------------ #
     _section("SCENARIO 2 — dedup catch (expected: duplicate=True, no new_contact)")
 
     duplicate_attempt = {
-        "firstName": "Aaron",
-        "lastName": "Farkas",
+        "firstName": existing_first,
+        "lastName": existing_last,
         "howWeMet": "College",
         "relationshipType": "Friend",
     }

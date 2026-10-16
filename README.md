@@ -16,7 +16,7 @@ You add contacts (friends, family, colleagues) and log interactions whenever you
 
 **Core functionality:**
 - Contact management with notes, birthdays, and custom cadence goals
-- Interaction logging (calls, texts, emails, meetings, meals, video calls, activities)
+- Interaction logging (call, text, email, in-person, video, LinkedIn), including planned future interactions
 - Dashboard that surfaces who needs your attention using a color-coded priority system
 - Search and filtering across all contacts
 - LinkedIn CSV import for bulk onboarding
@@ -51,26 +51,12 @@ Use your own Firebase backend instead of the hosted version. You'll need a free 
 1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project
 2. Turn on Authentication with Google as the sign-in provider
 3. Create a Firestore database (start in production mode, pick a region near you)
-4. Set up security rules so users can only access their own data:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/contacts/{contactId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /users/{userId}/interactions/{interactionId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+4. Set up security rules so users can only access their own data. Copy the rules from [`firestore.rules`](firestore.rules) into the Rules tab of the Firestore console and publish them.
 
 5. Register a web app in your project settings and copy the config object
 6. Download `relationship-crm.html`
-7. Open it in a text editor and find the Firebase config section (around line 5500)
-8. Replace the placeholder values with your actual Firebase config
+7. Open it in a text editor and find the `firebaseConfig` block near the top of the script
+8. Replace the values in `firebaseConfig` with your own Firebase config
 9. Open in a browser, or run a local server:
 
 ```bash
@@ -87,13 +73,13 @@ Sign in with Google and you're ready to go.
 After signing in, you'll see an empty dashboard. Start by adding some contacts.
 
 **Adding contacts:**
-Click the + button, fill in their info (only name is required), choose a category (work/friends/family), and set how often you want to stay in touch. The cadence options are daily, weekly, monthly, quarterly, or annually.
+Click the + button, fill in their info (only name is required), choose a relationship type (Family, Close Friend, Friend, Professional, or Acquaintance), and set how often you want to stay in touch (default by type, or 14, 30, 60, 90 days, or a custom number of days).
 
 **Logging interactions:**
-Every time you talk to someone, log it. Click "Log Interaction" from the dashboard or from a contact's page. Pick the type (call, text, email, meeting, meal, video call, activity), add the date, and write a quick note about what you talked about. You can also tag other people who were there.
+Every time you talk to someone, log it. Click "Log Interaction" from the dashboard or from a contact's page. Pick the type (call, text, email, in-person, video, LinkedIn), add the date, and write a quick note about what you talked about. You can also tag other people who were there.
 
 **The dashboard:**
-Shows you who you need to reach out to. Priority contacts (red) are people you're very overdue to contact. "Needs Attention" (orange/yellow) are people getting close. You also see recent activity and upcoming birthdays.
+Shows you who you need to reach out to. Priority contacts are people you've marked "Contact ASAP". "Needs Attention" lists non-muted contacts who are past their contact frequency. You also see recent activity and upcoming birthdays.
 
 **Keyboard shortcuts:**
 | Shortcut | Action |
@@ -104,11 +90,11 @@ Shows you who you need to reach out to. Priority contacts (red) are people you'r
 | `⌘/Ctrl + H` | Dashboard |
 
 **LinkedIn import:**
-You can import contacts from LinkedIn. Export your connections as a CSV from LinkedIn, then go to Settings and use the LinkedIn import tool. The app will show you any conflicts with existing contacts and let you decide how to handle them.
+Export your connections as a CSV from LinkedIn, then upload it in Settings. It is stored as a reference database: when a contact has a LinkedIn URL, the app fills in a blank company and position, and records the connection date. If your value differs from LinkedIn's, the app shows the conflict and lets you choose. Separately, Settings can import a plain contacts CSV.
 
 ## Technical Details
 
-This is a single-page app written in vanilla JavaScript. No React, no Vue, no build tools. Just one HTML file with embedded CSS and JavaScript — about 5,850 lines.
+This is a single-page app written in vanilla JavaScript. No React, no Vue, no build tools. Just one HTML file with embedded CSS and JavaScript — about 6,200 lines.
 
 **Stack:**
 - Vanilla JavaScript (ES6+)
@@ -118,22 +104,23 @@ This is a single-page app written in vanilla JavaScript. No React, no Vue, no bu
 
 **Architecture decisions:**
 - **Single-file design** — Extremely portable. Deploy anywhere that serves static files.
-- **Map-based state** — Uses JavaScript Maps instead of arrays for O(1) contact lookups.
 - **Real-time sync** — Firestore `onSnapshot` listeners keep data in sync across devices within milliseconds.
-- **Debounced search** — 300ms debounce to avoid excessive re-renders.
-- **CSS containment** — Isolates layout calculations for better rendering performance.
 
 **Data model:**
 ```
-users/{userId}/
-  contacts/{contactId}
-  interactions/{interactionId}
+users/{uid}                 (one Firestore document per user)
+  contacts[]                (array)
+  interactions[]            (array)
+  linkedinData[], enrichmentConflicts[], version, lastUpdated
 ```
 
 Each interaction references a `contactId`. Logging an interaction updates the contact's `lastContactedAt` timestamp, which drives the status colors and sorting.
 
 **Security:**
-Firestore rules enforce that users can only read/write their own data by checking `request.auth.uid` against the document path.
+Firestore rules enforce that a signed-in user can read and write only the document `users/{their own uid}`, and nothing else. A reference copy is in [`firestore.rules`](firestore.rules). The rules live in the Firebase console and are not deployed from this repo.
+
+**Deployment:**
+GitHub Pages serves `relationship-crm.html` and `demo.html` from `main`. Firebase Hosting is deployed only with `./deploy.sh`, which publishes just the app file from a temporary `dist/` folder. Never run `firebase deploy` from the repo folder directly.
 
 ## Roadmap
 
@@ -144,7 +131,7 @@ Some features I've thought about but haven't built yet:
 - Relationship network visualization
 - AI-powered outreach suggestions
 - Gmail integration
-- Custom tags beyond work/friends/family
+- Custom tags beyond the five relationship types
 - Bulk actions
 
 ## Known Issues
@@ -157,7 +144,3 @@ Some features I've thought about but haven't built yet:
 ## How This Was Built
 
 I started this project to learn full-stack development. It began as a simple localStorage app in January 2026 and evolved into a Firebase-backed application when I needed multi-device sync. I used [Claude](https://claude.ai) as a development partner throughout the process — for debugging, architecture decisions, and learning JavaScript patterns. The project has been my daily driver for tracking relationships ever since.
-
-## License
-
-MIT License — use it however you want. See the [LICENSE](LICENSE) file for details.

@@ -6,8 +6,8 @@
 ## Build status (as of v1.4)
 
 - **Scaffolding: DONE and verified.** Standalone Python MCP server, Firebase service-account auth, the Claude Agent SDK harness (`crm_agent.py`), env/PATH wiring, and tool restriction all work end to end.
-- **Tool 1 `find_contact`: DONE**, verified against live data (3 real Aarons, correct dates).
-- **Tool 2 `get_contact`: DONE**, verified (Aaron Farkas: 12-field profile + 19 interactions = 16 primary + 3 tagged, correct ISO date).
+- **Tool 1 `find_contact`: DONE**, verified against live data (multiple same-first-name matches, correct dates).
+- **Tool 2 `get_contact`: DONE**, verified (Contact A: 12-field profile + 19 interactions = 16 primary + 3 tagged, correct ISO date).
 - **Tool 3 `log_interaction`: NEXT — this update.** First write tool.
 - **Tools 4–5 (`list_outreach_candidates`, `get_interaction_history`): not started.**
 

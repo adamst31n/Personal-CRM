@@ -44,3 +44,6 @@ Screenshots/
 
 # Deploy staging folder (rebuilt by deploy.sh)
 dist/
+
+# Personal planning notes
+roadmap.md

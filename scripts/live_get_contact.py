@@ -3,8 +3,8 @@
 Usage:
     python3.11 scripts/live_get_contact.py <contact_id>
 
-Example (Aaron Farkas):
-    python3.11 scripts/live_get_contact.py 6ca0693d-a0ce-4657-999f-1a75191046df
+Example:
+    python3.11 scripts/live_get_contact.py <CONTACT_ID>
 """
 
 from __future__ import annotations

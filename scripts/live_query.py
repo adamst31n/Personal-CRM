@@ -1,8 +1,8 @@
 """Run find_contact against live Firestore data — read-only, no writes.
 
 Usage:
-    python3 scripts/live_query.py "aaron"
-    python3 scripts/live_query.py "smith" "carol"
+    python3 scripts/live_query.py "alex"
+    python3 scripts/live_query.py "smith" "jordan"
 """
 
 from __future__ import annotations

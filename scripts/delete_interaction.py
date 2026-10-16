@@ -8,7 +8,7 @@ Usage:
     python3.11 scripts/delete_interaction.py <interaction_id>
 
 Example:
-    python3.11 scripts/delete_interaction.py 8421deb3-7e0c-45be-bb0d-f8bbada3d630
+    python3.11 scripts/delete_interaction.py <INTERACTION_ID>
 """
 
 from __future__ import annotations
