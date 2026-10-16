@@ -3360,8 +3360,8 @@
     // Activity page filter. In memory only: survives re-renders and navigation, resets on reload.
     let activityFilterState = { types: [] }; // Empty array means all types
 
-    function activityMatchesFilter(interaction) {
-      const types = activityFilterState.types;
+    // Shared by Activity and contact Interaction History. Empty types = match all.
+    function interactionMatchesTypes(interaction, types) {
       if (types.length === 0) return true;
       if (types.includes(interaction.type)) return true;
       // Legacy 'Social' interactions count as LinkedIn
@@ -3657,7 +3657,7 @@
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
       // Apply the type filter before grouping so day headers and counts reflect filtered items
-      const filteredInteractions = allInteractions.filter(activityMatchesFilter);
+      const filteredInteractions = allInteractions.filter(i => interactionMatchesTypes(i, activityFilterState.types));
       const filterActive = activityFilterState.types.length > 0;
 
       // Group interactions by date
@@ -3762,6 +3762,125 @@
       `;
     }
 
+    // Interaction History filter for the contact page. In memory only; resets when a different contact is shown.
+    let contactHistoryFilterState = { contactId: null, types: [] }; // Empty types means all
+
+    // Inner HTML of the history card. Also used to refresh just the card when a chip is toggled.
+    function renderInteractionHistoryContents(contact) {
+      if (contactHistoryFilterState.contactId !== contact.id) {
+        contactHistoryFilterState = { contactId: contact.id, types: [] };
+      }
+      const allInteractions = getInteractionsByContact(contact.id);
+      // Chips only for types this contact has used, in INTERACTION_TYPES order (legacy 'Social' counts as LinkedIn)
+      const historyTypes = INTERACTION_TYPES
+        .map(t => t.type)
+        .filter(type => allInteractions.some(i => interactionMatchesTypes(i, [type])));
+      const chipsVisible = historyTypes.length >= 2;
+      // With no chip row there is no way to clear a filter, so ignore any stale one
+      const effectiveTypes = chipsVisible ? contactHistoryFilterState.types : [];
+      const filterActive = effectiveTypes.length > 0;
+      // Filter first so zebra striping and the last-row border are computed on visible rows
+      const interactions = allInteractions.filter(i => interactionMatchesTypes(i, effectiveTypes));
+      return `
+      <h2 class="mb-md">Interaction History (${filterActive ? `${interactions.length} of ${allInteractions.length}` : allInteractions.length})${filterActive ? ` <a href="#" class="text-small" style="font-weight: 400;" onclick="clearHistoryFilters(); return false;">Clear filters</a>` : ''}</h2>
+      ${allInteractions.length === 0 ? `
+        <div class="empty-state" style="padding: 1rem;">
+          <p class="text-muted">No interactions logged yet.</p>
+          <p class="text-muted text-small">Click "Log Interaction" above to record your first conversation with this contact.</p>
+        </div>
+      ` : `
+        ${chipsVisible ? `
+        <div class="filter-chips">
+          ${historyTypes.map(type => `
+            <button
+              type="button"
+              class="filter-chip ${effectiveTypes.includes(type) ? 'selected' : ''}"
+              onclick="toggleHistoryType('${escapeHtml(type)}')"
+            >${escapeHtml(type)}</button>
+          `).join('')}
+        </div>
+      ` : ''}
+        ${interactions.length === 0 ? `
+          <div class="empty-state" style="padding: 1rem;">
+            <p class="text-muted">No interactions match these filters</p>
+            <button class="btn mt-md" onclick="clearHistoryFilters()">Clear filters</button>
+          </div>
+        ` : `
+        <div style="display: flex; flex-direction: column; gap: 0;">
+          ${interactions.map((interaction, idx) => {
+            const isFuture = isFutureDate(interaction.date);
+            const isLast = idx === interactions.length - 1;
+            const borderStyle = isFuture ? 'border-left: 2px solid rgba(37, 99, 235, 0.3); padding-left: 0.5rem;' : 'border-left: 2px solid transparent;';
+            const typeLabel = escapeHtml(isFuture ? `Planned: ${interaction.type}` : interaction.type);
+            // Check if this contact was tagged (vs being the primary contact)
+            const isTagged = interaction.contactId !== contact.id;
+            const primaryContact = isTagged ? getContact(interaction.contactId) : null;
+            // Get all participants for display
+            const allParticipants = [];
+            if (isTagged && primaryContact) {
+              allParticipants.push(getFullName(primaryContact));
+            }
+            if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+              interaction.taggedContacts.forEach(taggedId => {
+                if (taggedId !== contact.id) {
+                  const taggedContact = getContact(taggedId);
+                  if (taggedContact) allParticipants.push(getFullName(taggedContact));
+                }
+              });
+            }
+            return `
+              <div class="card card-flat interaction-entry${idx % 2 === 1 ? ' interaction-entry-alt' : ''}" style="padding: 12px 0.625rem; margin: 0; position: relative; border-radius: 0; ${!isLast ? 'border-bottom: 1px solid rgba(107,114,128,0.27);' : ''} ${borderStyle}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 700; font-size: 0.9375rem; line-height: 1.3; ${isFuture ? 'color: var(--color-primary);' : 'color: var(--color-text-primary);'}">${typeLabel}</div>
+                    <div style="font-size: 0.75rem; margin-top: 3px; line-height: 1.4; ${isFuture ? 'color: var(--color-primary); opacity: 0.7;' : 'color: var(--color-text-secondary); opacity: 0.75;'}">${formatDate(interaction.date)} · ${formatRelativeDate(interaction.date)}${allParticipants.length > 0 ? ` · Also with ${allParticipants.map(name => escapeHtml(name)).join(', ')}` : ''}</div>
+                  </div>
+                  <div style="display: flex; gap: 0.625rem; flex-shrink: 0; padding-top: 2px;">
+                    <button onclick="openEditInteractionModal('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Edit">Edit</button>
+                    <button onclick="duplicateInteraction('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Duplicate">Duplicate</button>
+                    <button onclick="deleteInteractionWithConfirm('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Delete">Delete</button>
+                  </div>
+                </div>
+                ${interaction.notes ? `<div style="margin-top: 7px; font-size: 0.8125rem; line-height: 1.55; color: var(--color-text-primary); max-width: 65ch;">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        `}
+      `}
+      `;
+    }
+
+    function renderInteractionHistory(contact) {
+      return `<div class="card card-flat" id="interaction-history">${renderInteractionHistoryContents(contact)}</div>`;
+    }
+
+    function refreshInteractionHistory() {
+      const contact = getContact(AppState.selectedContactId);
+      const container = document.getElementById('interaction-history');
+      if (contact && container) {
+        container.innerHTML = renderInteractionHistoryContents(contact);
+      } else {
+        renderCurrentView();
+      }
+    }
+
+    function toggleHistoryType(type) {
+      const types = contactHistoryFilterState.types;
+      const idx = types.indexOf(type);
+      if (idx === -1) {
+        types.push(type);
+      } else {
+        types.splice(idx, 1);
+      }
+      refreshInteractionHistory();
+    }
+
+    function clearHistoryFilters() {
+      contactHistoryFilterState.types = [];
+      refreshInteractionHistory();
+    }
+
     function renderContactDetail() {
       const app = document.getElementById('app');
       const contact = getContact(AppState.selectedContactId);
@@ -3782,7 +3901,6 @@
       const days = getDaysSinceLastContact(contact.id);
       const status = getContactStatus(contact.id);
       const statusText = days === null ? 'Never contacted' : days === 0 ? 'Last contact: Today' : days === 1 ? 'Last contact: Yesterday' : `Last contact: ${days} days ago`;
-      const interactions = getInteractionsByContact(contact.id);
       const statusBorderColor = {never: 'rgba(107,114,128,0.18)', recent: 'rgba(5,150,105,0.25)', caution: 'rgba(245,158,11,0.35)', warning: 'rgba(234,88,12,0.48)', overdue: 'rgba(220,38,38,0.58)'}[status] || 'var(--color-border)';
       const statusTextColor = {never: 'rgba(107,114,128,0.6)', recent: 'rgba(5,150,105,0.75)', caution: 'rgba(245,158,11,0.85)', warning: 'rgba(234,88,12,0.9)', overdue: 'rgba(220,38,38,0.95)'}[status] || 'var(--color-text-secondary)';
 
@@ -3922,56 +4040,7 @@
           </button>
 
           <!-- Interaction History -->
-          <div class="card card-flat">
-            <h2 class="mb-md">Interaction History (${interactions.length})</h2>
-            ${interactions.length === 0 ? `
-              <div class="empty-state" style="padding: 1rem;">
-                <p class="text-muted">No interactions logged yet.</p>
-                <p class="text-muted text-small">Click "Log Interaction" above to record your first conversation with this contact.</p>
-              </div>
-            ` : `
-              <div style="display: flex; flex-direction: column; gap: 0;">
-                ${interactions.map((interaction, idx) => {
-                  const isFuture = isFutureDate(interaction.date);
-                  const isLast = idx === interactions.length - 1;
-                  const borderStyle = isFuture ? 'border-left: 2px solid rgba(37, 99, 235, 0.3); padding-left: 0.5rem;' : 'border-left: 2px solid transparent;';
-                  const typeLabel = escapeHtml(isFuture ? `Planned: ${interaction.type}` : interaction.type);
-                  // Check if this contact was tagged (vs being the primary contact)
-                  const isTagged = interaction.contactId !== contact.id;
-                  const primaryContact = isTagged ? getContact(interaction.contactId) : null;
-                  // Get all participants for display
-                  const allParticipants = [];
-                  if (isTagged && primaryContact) {
-                    allParticipants.push(getFullName(primaryContact));
-                  }
-                  if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
-                    interaction.taggedContacts.forEach(taggedId => {
-                      if (taggedId !== contact.id) {
-                        const taggedContact = getContact(taggedId);
-                        if (taggedContact) allParticipants.push(getFullName(taggedContact));
-                      }
-                    });
-                  }
-                  return `
-                    <div class="card card-flat interaction-entry${idx % 2 === 1 ? ' interaction-entry-alt' : ''}" style="padding: 12px 0.625rem; margin: 0; position: relative; border-radius: 0; ${!isLast ? 'border-bottom: 1px solid rgba(107,114,128,0.27);' : ''} ${borderStyle}">
-                      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-                        <div style="flex: 1; min-width: 0;">
-                          <div style="font-weight: 700; font-size: 0.9375rem; line-height: 1.3; ${isFuture ? 'color: var(--color-primary);' : 'color: var(--color-text-primary);'}">${typeLabel}</div>
-                          <div style="font-size: 0.75rem; margin-top: 3px; line-height: 1.4; ${isFuture ? 'color: var(--color-primary); opacity: 0.7;' : 'color: var(--color-text-secondary); opacity: 0.75;'}">${formatDate(interaction.date)} · ${formatRelativeDate(interaction.date)}${allParticipants.length > 0 ? ` · Also with ${allParticipants.map(name => escapeHtml(name)).join(', ')}` : ''}</div>
-                        </div>
-                        <div style="display: flex; gap: 0.625rem; flex-shrink: 0; padding-top: 2px;">
-                          <button onclick="openEditInteractionModal('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Edit">Edit</button>
-                          <button onclick="duplicateInteraction('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Duplicate">Duplicate</button>
-                          <button onclick="deleteInteractionWithConfirm('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Delete">Delete</button>
-                        </div>
-                      </div>
-                      ${interaction.notes ? `<div style="margin-top: 7px; font-size: 0.8125rem; line-height: 1.55; color: var(--color-text-primary); max-width: 65ch;">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            `}
-          </div>
+          ${renderInteractionHistory(contact)}
 
           <!-- Delete Contact Button -->
           <div class="mt-md">
@@ -6265,6 +6334,8 @@
         toggleFilterType,
         toggleActivityType,
         clearActivityFilters,
+        toggleHistoryType,
+        clearHistoryFilters,
         selectInteractionType,
         selectQuickDate,
         removeTaggedContact,
