@@ -3019,7 +3019,7 @@
                   : {never: 'rgba(107,114,128,0.18)', recent: 'rgba(5,150,105,0.25)', caution: 'rgba(245,158,11,0.35)', warning: 'rgba(234,88,12,0.48)', overdue: 'rgba(220,38,38,0.58)'}
                 )[status] || 'var(--color-border)';
                 return `
-                  <div class="needs-attention-row" style="border-left-color: ${borderColor};" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                  <div class="needs-attention-row" style="border-left-color: ${borderColor};" onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                     <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 2.25rem); ${hasUpcoming ? 'color: rgba(37,99,235,0.43);' : ''}">${escapeHtml(getFullName(contact))}</span>
                     <span style="font-size: 0.75rem; font-weight: 600; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${statusText}</span>${hasUpcoming ? `<span style="font-size: 0.6875rem; color: rgba(37,99,235,0.43); flex-shrink: 0; line-height: 1; margin-left: 0.2rem;" title="Scheduled">&#128197;</span>` : ''}
                   </div>
@@ -3099,10 +3099,12 @@
 
       // Split interactions into past (recent) and future (upcoming) using local date comparison
       const recentInteractions = AppState.interactions
+        .filter(i => getContact(i.contactId)) // skip interactions whose contact no longer exists
         .filter(i => !isFutureDate(i.date))
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 20);
       const upcomingInteractions = AppState.interactions
+        .filter(i => getContact(i.contactId)) // skip interactions whose contact no longer exists
         .filter(i => isFutureDate(i.date))
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .slice(0, 5);
@@ -3158,7 +3160,7 @@
                     const dayColor = {never: 'rgba(107,114,128,0.65)', recent: 'rgba(5,150,105,0.8)', caution: 'rgba(245,158,11,0.9)', warning: 'rgba(234,88,12,0.95)', overdue: 'rgba(220,38,38,1)'}[status] || 'var(--color-text-secondary)';
                     const borderColor = {never: 'rgba(107,114,128,0.45)', recent: 'rgba(5,150,105,0.55)', caution: 'rgba(245,158,11,0.65)', warning: 'rgba(234,88,12,0.8)', overdue: 'rgba(220,38,38,0.9)'}[status] || 'var(--color-border)';
                     return `
-                      <div class="priority-flat-row" style="border-left-color: ${borderColor};" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                      <div class="priority-flat-row" style="border-left-color: ${borderColor};" onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                         <span style="font-weight: 700; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 2.25rem);">${escapeHtml(getFullName(contact))}</span>
                         <span style="font-size: 0.75rem; font-weight: 600; color: ${dayColor}; white-space: nowrap; flex-shrink: 0;">${daysText}</span>
                       </div>
@@ -3202,7 +3204,7 @@
                           ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
-                          <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
+                          <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                             <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
                           </div>
                         `;
@@ -3229,7 +3231,7 @@
                           ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
                           : participants.map(n => escapeHtml(n)).join(' & ');
                         return `
-                          <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatRelativeDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${contact.id}'})">
+                          <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatRelativeDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                             <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
                           </div>
                         `;
@@ -3259,11 +3261,11 @@
                   <div style="display: flex; flex-direction: column; gap: 0.3125rem;">
                     ${nextBirthdays.map(({ contact, daysUntil }) => {
                       const dayText = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tmrw' : `${daysUntil}d`;
-                      const birthdayText = contact.birthdayMonth && contact.birthdayDay ? `${contact.birthdayMonth.slice(0, 3)} ${contact.birthdayDay}` : '';
+                      const birthdayText = contact.birthdayMonth && contact.birthdayDay ? escapeHtml(`${String(contact.birthdayMonth).slice(0, 3)} ${contact.birthdayDay}`) : '';
                       const isUrgent = daysUntil <= 7;
                       const accentColor = isUrgent ? 'rgba(220,38,38,0.75)' : 'rgba(37,99,235,0.4)';
                       return `
-                        <div class="birthday-flat-row" style="border-left-color: ${accentColor};" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                        <div class="birthday-flat-row" style="border-left-color: ${accentColor};" onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                           <span style="font-weight: 600; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: calc(100% - 3rem);">${escapeHtml(getFullName(contact))}${birthdayText ? `<span class="text-muted" style="font-weight: 400;"> &middot; ${birthdayText}</span>` : ''}</span>
                           <span style="font-size: 0.8125rem; font-weight: 700; color: ${isUrgent ? 'var(--color-danger)' : 'var(--color-primary)'}; white-space: nowrap; flex-shrink: 0; margin-left: auto;">${dayText}</span>
                         </div>
@@ -3322,10 +3324,35 @@
       return (INTERACTION_TYPE_META[type] || INTERACTION_TYPE_META['Text']).iconText;
     }
 
+    // Escapes text so it is safe both between tags and inside quoted attributes.
+    // null/undefined become ''. Numbers and other values are converted to strings first.
     function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Returns a safe, clickable http(s) URL, or '' if the value must not be linked.
+    // - http:// and https:// are kept as-is.
+    // - A value with no scheme (e.g. "linkedin.com/in/x") gets "https://" added (display only; stored value is unchanged).
+    // - Any other scheme (javascript:, data:, mailto:, ftp://, ...) is rejected.
+    function safeUrl(url) {
+      if (typeof url !== 'string') return '';
+      const trimmed = url.trim();
+      if (!trimmed) return '';
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      if (trimmed.includes('://') || /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return '';
+      return 'https://' + trimmed;
+    }
+
+    // Returns the id only if it contains letters, digits, underscore, or dash, otherwise ''.
+    // Needed because ids are placed inside onclick="...('ID')" where HTML escaping does not help.
+    function safeId(id) {
+      return (typeof id === 'string' && /^[A-Za-z0-9_-]+$/.test(id)) ? id : '';
     }
 
     // Escape HTML but preserve newlines as <br> tags for multi-line notes display
@@ -3537,7 +3564,7 @@
                 }
 
                 return `
-                  <div class="card card-clickable contact-card-compact" style="border-left: 3px solid ${borderColor}; margin: 0; ${priorityStyle}" onclick="navigateTo('contact', {id: '${contact.id}'})">
+                  <div class="card card-clickable contact-card-compact" style="border-left: 3px solid ${borderColor}; margin: 0; ${priorityStyle}" onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
                       <div style="flex: 1; min-width: 0;">
                         <div style="display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.125rem;">
@@ -3546,7 +3573,7 @@
                           ${contact.priority ? `<span style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: white; padding: 0.0625rem 0.375rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 700; white-space: nowrap;">ASAP</span>` : ''}
                           ${contact.muted ? `<span style="color: var(--color-text-secondary); font-size: 0.75rem;" title="Muted">🔇</span>` : ''}
                         </div>
-                        <div class="contact-meta text-muted">${contact.relationshipType}</div>
+                        <div class="contact-meta text-muted">${escapeHtml(contact.relationshipType)}</div>
                       </div>
                       <div style="text-align: right; white-space: nowrap; position: relative;">
                         <div class="contact-meta" style="color: ${dayColor}; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -3658,7 +3685,7 @@
                       const status = getContactStatus(interaction.contact.id);
                       const isFuture = isFutureDate(interaction.date);
                       const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
-                      const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                      const typeLabel = escapeHtml(isFuture ? `Planned: ${interaction.type}` : interaction.type);
                       // Build participant list including tagged contacts
                       const participants = [getFullName(interaction.contact)];
                       if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
@@ -3671,14 +3698,14 @@
                         ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
                         : participants.map(n => escapeHtml(n)).join(' & ');
                       return `
-                        <div class="card card-clickable" style="padding: 1rem; margin: 0; ${borderStyle}" onclick="navigateTo('contact', {id: '${interaction.contact.id}'})">
+                        <div class="card card-clickable" style="padding: 1rem; margin: 0; ${borderStyle}" onclick="navigateTo('contact', {id: '${safeId(interaction.contact.id)}'})">
                           <div style="display: flex; gap: 0.75rem; align-items: start;">
                             <span class="icon icon-${status}" style="background: linear-gradient(135deg, var(--color-${status}) 0%, var(--color-${status}) 100%); color: white; font-size: 0.875rem; font-weight: 700; ${isFuture ? 'opacity: 0.7; border: 2px dashed var(--color-primary);' : ''}">${initials}</span>
                             <div style="flex: 1;">
                               <div style="font-weight: 600; margin-bottom: 0.25rem; ${isFuture ? 'color: var(--color-primary);' : ''}">
                                 ${typeLabel} with ${participantText}
                               </div>
-                              <div class="text-muted text-small">${interaction.contact.relationshipType}</div>
+                              <div class="text-muted text-small">${escapeHtml(interaction.contact.relationshipType)}</div>
                               ${interaction.notes ? `<div class="text-small" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border);">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
                             </div>
                           </div>
@@ -3737,14 +3764,14 @@
               <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.025em; color: var(--color-text-primary); line-height: 1.2;">
                 ${escapeHtml(getFullName(contact))}${contact.muted ? ' <span style="font-size: 0.75rem; color: var(--color-text-secondary);">🔇</span>' : ''}
               </h1>
-              <div style="color: var(--color-text-secondary); font-size: 0.875rem; font-style: italic;">${contact.relationshipType}</div>
+              <div style="color: var(--color-text-secondary); font-size: 0.875rem; font-style: italic;">${escapeHtml(contact.relationshipType)}</div>
             </div>
 
             <div class="contact-actions">
               <button
                 class="btn ${contact.muted ? 'btn-secondary' : 'btn-secondary'}"
                 style="padding: 0.5rem 1rem; font-size: 0.875rem; ${contact.muted ? 'background: var(--color-text-secondary); color: white;' : ''}"
-                onclick="toggleContactMuted('${contact.id}')"
+                onclick="toggleContactMuted('${safeId(contact.id)}')"
                 title="${contact.muted ? 'Unmute contact' : 'Mute contact (hide from Needs Attention)'}"
               >
                 ${contact.muted ? '🔇 Muted' : '🔔 Mute'}
@@ -3752,12 +3779,12 @@
               <button
                 class="btn ${contact.priority ? 'btn-danger' : 'btn-secondary'}"
                 style="padding: 0.5rem 1rem; font-size: 0.875rem;"
-                onclick="toggleContactPriority('${contact.id}')"
+                onclick="toggleContactPriority('${safeId(contact.id)}')"
                 title="${contact.priority ? 'Remove from priority' : 'Mark as priority contact'}"
               >
                 ${contact.priority ? '⚠️ Contact ASAP' : 'Mark as Priority'}
               </button>
-              <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('edit-contact', {id: '${contact.id}'})">Edit</button>
+              <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="navigateTo('edit-contact', {id: '${safeId(contact.id)}'})">Edit</button>
             </div>
           </div>
 
@@ -3782,13 +3809,15 @@
               ${contact.email ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Email</span>
-                  <a href="mailto:${contact.email}" style="color: var(--color-text-primary); text-decoration: none; font-size: 0.8125rem;">${escapeHtml(contact.email)}</a>
+                  <a href="mailto:${escapeHtml(encodeURIComponent(contact.email).replace(/%40/g, '@'))}" style="color: var(--color-text-primary); text-decoration: none; font-size: 0.8125rem;">${escapeHtml(contact.email)}</a>
                 </div>
               ` : ''}
               ${contact.linkedin ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">LinkedIn</span>
-                  <a href="${escapeHtml(contact.linkedin)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: none; font-size: 0.8125rem;">View Profile →</a>
+                  ${safeUrl(contact.linkedin)
+                    ? `<a href="${escapeHtml(safeUrl(contact.linkedin))}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: none; font-size: 0.8125rem;">View Profile →</a>`
+                    : `<span style="font-size: 0.8125rem; color: var(--color-text-secondary);">${escapeHtml(contact.linkedin)}</span>`}
                 </div>
               ` : ''}
               ${connectedOnDisplay ? `
@@ -3818,7 +3847,7 @@
               ${contact.birthdayMonth && contact.birthdayDay ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="min-width: 70px; font-weight: 600; color: var(--color-text-secondary); font-size: 0.8125rem;">Birthday</span>
-                  <span style="font-size: 0.8125rem;">${contact.birthdayMonth} ${contact.birthdayDay}</span>
+                  <span style="font-size: 0.8125rem;">${escapeHtml(contact.birthdayMonth)} ${escapeHtml(contact.birthdayDay)}</span>
                 </div>
               ` : contact.birthday ? `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -3848,7 +3877,7 @@
           ` : ''}
 
           <!-- Log Interaction Button -->
-          <button class="btn btn-block mb-lg" onclick="openInteractionModal('${contact.id}')">
+          <button class="btn btn-block mb-lg" onclick="openInteractionModal('${safeId(contact.id)}')">
             Log New Interaction
           </button>
 
@@ -3866,7 +3895,7 @@
                   const isFuture = isFutureDate(interaction.date);
                   const isLast = idx === interactions.length - 1;
                   const borderStyle = isFuture ? 'border-left: 2px solid rgba(37, 99, 235, 0.3); padding-left: 0.5rem;' : 'border-left: 2px solid transparent;';
-                  const typeLabel = isFuture ? `Planned: ${interaction.type}` : interaction.type;
+                  const typeLabel = escapeHtml(isFuture ? `Planned: ${interaction.type}` : interaction.type);
                   // Check if this contact was tagged (vs being the primary contact)
                   const isTagged = interaction.contactId !== contact.id;
                   const primaryContact = isTagged ? getContact(interaction.contactId) : null;
@@ -3891,9 +3920,9 @@
                           <div style="font-size: 0.75rem; margin-top: 3px; line-height: 1.4; ${isFuture ? 'color: var(--color-primary); opacity: 0.7;' : 'color: var(--color-text-secondary); opacity: 0.75;'}">${formatDate(interaction.date)} · ${formatRelativeDate(interaction.date)}${allParticipants.length > 0 ? ` · Also with ${allParticipants.map(name => escapeHtml(name)).join(', ')}` : ''}</div>
                         </div>
                         <div style="display: flex; gap: 0.625rem; flex-shrink: 0; padding-top: 2px;">
-                          <button onclick="openEditInteractionModal('${interaction.id}')" style="background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Edit">Edit</button>
-                          <button onclick="duplicateInteraction('${interaction.id}')" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Duplicate">Duplicate</button>
-                          <button onclick="deleteInteractionWithConfirm('${interaction.id}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Delete">Delete</button>
+                          <button onclick="openEditInteractionModal('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Edit">Edit</button>
+                          <button onclick="duplicateInteraction('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Duplicate">Duplicate</button>
+                          <button onclick="deleteInteractionWithConfirm('${safeId(interaction.id)}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; font-size: 0.8125rem; font-weight: 500;" title="Delete">Delete</button>
                         </div>
                       </div>
                       ${interaction.notes ? `<div style="margin-top: 7px; font-size: 0.8125rem; line-height: 1.55; color: var(--color-text-primary); max-width: 65ch;">${escapeHtmlPreserveNewlines(interaction.notes)}</div>` : ''}
@@ -3906,7 +3935,7 @@
 
           <!-- Delete Contact Button -->
           <div class="mt-md">
-            <button class="btn btn-danger btn-block" onclick="deleteContactWithConfirm('${contact.id}')">
+            <button class="btn btn-danger btn-block" onclick="deleteContactWithConfirm('${safeId(contact.id)}')">
               Delete Contact
             </button>
           </div>
@@ -4150,7 +4179,7 @@
                   placeholder="Day"
                   min="1"
                   max="31"
-                  value="${contact?.birthdayDay || ''}"
+                  value="${escapeHtml(contact?.birthdayDay)}"
                 />
               </div>
             </div>
@@ -4178,10 +4207,10 @@
                   placeholder="Enter days"
                   min="1"
                   max="365"
-                  value="${contact?.contactFrequency && ![14, 30, 60, 90].includes(contact.contactFrequency) ? contact.contactFrequency : ''}"
+                  value="${contact?.contactFrequency && ![14, 30, 60, 90].includes(contact.contactFrequency) ? escapeHtml(contact.contactFrequency) : ''}"
                 />
               </div>
-              <input type="hidden" id="contact-frequency" name="contactFrequency" value="${contact?.contactFrequency || ''}" />
+              <input type="hidden" id="contact-frequency" name="contactFrequency" value="${escapeHtml(contact?.contactFrequency)}" />
             </div>
 
             <!-- Notes -->
@@ -4194,7 +4223,7 @@
                 placeholder="Any additional notes about this contact..."
                 rows="4"
                 style="resize: vertical; min-height: 100px;"
-              >${contact?.notes || ''}</textarea>
+              >${escapeHtml(contact?.notes)}</textarea>
             </div>
 
             <!-- Submit Button -->
@@ -4397,7 +4426,7 @@
             >
               <option value="">+ Add another person...</option>
               ${otherContacts.map(c => `
-                <option value="${c.id}" ${interactionModalState.taggedContacts.includes(c.id) ? 'style="display: none;"' : ''}>${escapeHtml(getFullName(c))}</option>
+                <option value="${escapeHtml(c.id)}" ${interactionModalState.taggedContacts.includes(c.id) ? 'style="display: none;"' : ''}>${escapeHtml(getFullName(c))}</option>
               `).join('')}
             </select>
           </div>
@@ -4486,7 +4515,7 @@
 
       const dateSection = `
         <input type="date" id="interaction-date" class="form-input"
-          value="${interaction.date}"
+          value="${escapeHtml(interaction.date)}"
           onchange="interactionModalState.selectedDate = this.value;"
         />
       `;
@@ -4590,7 +4619,7 @@
             ${escapeHtml(getFullName(contact))}
             <button
               type="button"
-              onclick="removeTaggedContact('${contactId}')"
+              onclick="removeTaggedContact('${safeId(contactId)}')"
               style="background: none; border: none; color: white; cursor: pointer; padding: 0; margin-left: 0.125rem; font-size: 0.875rem; line-height: 1;"
             >&times;</button>
           </span>
@@ -4910,9 +4939,62 @@
       return result;
     }
 
+    // Shows a three-button dialog (Replace / Merge / Cancel) using the existing modal styles.
+    // Cancel, Escape, or clicking outside the dialog all do nothing.
+    function showImportChoiceDialog(contactCount, interactionCount, onReplace, onMerge) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay active';
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">Import backup</h2>
+          </div>
+          <p class="text-muted mb-md">This file has ${contactCount} contacts and ${interactionCount} interactions.</p>
+          <p class="text-small mb-md"><strong>Replace all data:</strong> downloads a backup of your current data first, then replaces everything with this file.</p>
+          <p class="text-small mb-md"><strong>Merge:</strong> adds new contacts and interactions. Nothing existing is changed or removed.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <button type="button" class="btn btn-danger btn-block" data-choice="replace">Replace all data</button>
+            <button type="button" class="btn btn-block" data-choice="merge">Merge</button>
+            <button type="button" class="btn btn-secondary btn-block" data-choice="cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      function close() {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          close();
+        }
+      }
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) { close(); return; }
+        const choice = e.target.closest('[data-choice]')?.dataset.choice;
+        if (!choice) return;
+        close();
+        if (choice === 'replace') onReplace();
+        else if (choice === 'merge') onMerge();
+      });
+
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(overlay);
+    }
+
     function importData(event) {
-      const file = event.target.files[0];
+      const input = event.target;
+      const file = input.files[0];
       if (!file) return;
+
+      // Never import on top of a failed load: the app would not know what is really in Firestore.
+      if (!_initialLoadComplete) {
+        showToast('Your data has not finished loading. Reload the page and try again.', 'error');
+        input.value = '';
+        return;
+      }
 
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -4920,95 +5002,73 @@
           const data = JSON.parse(e.target.result);
 
           // Validate structure
-          if (!data.contacts || !data.interactions || !Array.isArray(data.contacts) || !Array.isArray(data.interactions)) {
+          if (!data || !Array.isArray(data.contacts) || !Array.isArray(data.interactions)) {
+            throw new Error('Invalid backup file format');
+          }
+          const isRecord = (item) => item && typeof item === 'object' && typeof item.id === 'string';
+          if (!data.contacts.every(isRecord) || !data.interactions.every(isRecord)) {
             throw new Error('Invalid backup file format');
           }
 
-          // Ask user if they want to merge or replace
-          const merge = confirm(
-            `Import ${data.contacts.length} contacts and ${data.interactions.length} interactions?\n\n` +
-            `Click OK to REPLACE your current data.\n` +
-            `Click Cancel to MERGE with existing data.`
-          );
+          const doReplace = () => {
+            if (data.contacts.length === 0 && data.interactions.length === 0) {
+              showToast('This backup is empty. Nothing was replaced.', 'error');
+              return;
+            }
+            // Safety net: download the current data before overwriting it.
+            exportData();
+            AppState.contacts = data.contacts;
+            AppState.interactions = data.interactions;
+            saveState();
+            renderCurrentView();
+            showToast(`Replaced with ${data.contacts.length} contacts and ${data.interactions.length} interactions`);
+          };
 
-          if (merge === false) {
-            // Merge: combine with existing data
-            // Create a map of existing contact IDs to avoid duplicates by name
+          const doMerge = () => {
+            // Contacts: skip any whose name already exists
             const existingNames = new Set(AppState.contacts.map(c => getFullName(c).toLowerCase()));
             const newContacts = data.contacts.filter(c => {
               const fullName = c.firstName && c.lastName ? `${c.firstName} ${c.lastName}`.trim().toLowerCase() : (c.name || '').toLowerCase();
               return !existingNames.has(fullName);
             });
+            const mergedContacts = [...AppState.contacts, ...newContacts];
 
-            AppState.contacts = [...AppState.contacts, ...newContacts];
-            AppState.interactions = [...AppState.interactions, ...data.interactions];
+            // Interactions: skip duplicates (same id) and ones pointing at a contact that is not in the merged list
+            const contactIds = new Set(mergedContacts.map(c => c.id));
+            const interactionIds = new Set(AppState.interactions.map(i => i.id));
+            const newInteractions = [];
+            let skippedInteractions = 0;
+            data.interactions.forEach(i => {
+              if (interactionIds.has(i.id) || !contactIds.has(i.contactId)) {
+                skippedInteractions++;
+                return;
+              }
+              interactionIds.add(i.id);
+              newInteractions.push(i);
+            });
 
-            showToast(`Imported ${newContacts.length} new contacts and ${data.interactions.length} interactions`);
-          } else {
-            // Replace: overwrite existing data
-            AppState.contacts = data.contacts;
-            AppState.interactions = data.interactions;
+            AppState.contacts = mergedContacts;
+            AppState.interactions = [...AppState.interactions, ...newInteractions];
+            saveState();
+            renderCurrentView();
+            showToast(`Merged: added ${newContacts.length} contacts and ${newInteractions.length} interactions, skipped ${skippedInteractions} interactions`);
+          };
 
-            showToast(`Imported ${data.contacts.length} contacts and ${data.interactions.length} interactions`);
-          }
-
-          // Allow saveState() to proceed — this is a deliberate user-initiated import
-          _initialLoadComplete = true;
-          _hadDataOnLoad = AppState.contacts.length > 0;
-          saveState();
-          renderCurrentView();
-
-          // Clear the file input
-          event.target.value = '';
+          showImportChoiceDialog(data.contacts.length, data.interactions.length, doReplace, doMerge);
         } catch (error) {
           console.error('Import error:', error);
           showToast('Error importing data: ' + error.message, 'error');
-          event.target.value = '';
+        } finally {
+          input.value = '';
         }
       };
 
       reader.onerror = () => {
         showToast('Error reading file', 'error');
-        event.target.value = '';
+        input.value = '';
       };
 
       reader.readAsText(file);
-    }
-
-    function clearAllData() {
-      const contactCount = AppState.contacts.length;
-      const interactionCount = AppState.interactions.length;
-
-      if (contactCount === 0) {
-        showToast('No data to clear', 'error');
-        return;
-      }
-
-      const confirmed = confirm(
-        `⚠️ WARNING: Delete ALL data?\n\n` +
-        `This will permanently delete:\n` +
-        `• ${contactCount} contacts\n` +
-        `• ${interactionCount} interactions\n\n` +
-        `This cannot be undone. Export a backup first if needed.\n\n` +
-        `Type "DELETE" to confirm.`
-      );
-
-      if (!confirmed) return;
-
-      const doubleConfirm = prompt('Type DELETE to confirm:');
-      if (doubleConfirm !== 'DELETE') {
-        showToast('Deletion cancelled', 'error');
-        return;
-      }
-
-      // Clear all data
-      AppState.contacts = [];
-      AppState.interactions = [];
-      localStorage.clear();
-      saveState();
-
-      showToast('All data cleared');
-      navigateTo('dashboard');
     }
 
     /* ===== SETTINGS VIEW ===== */
@@ -5074,7 +5134,7 @@
                 ${conflictData.conflicts.map(conflict => `
                   <div style="padding: var(--spacing-md); background: var(--color-background); border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
                     <div style="font-weight: 600; margin-bottom: var(--spacing-sm); color: var(--color-text-primary);">
-                      ${conflict.label}
+                      ${escapeHtml(conflict.label)}
                     </div>
                     
                     <div style="display: grid; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
@@ -5083,7 +5143,7 @@
                           <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 0.125rem;">YOUR CURRENT VALUE</div>
                           <div style="font-weight: 500;">${escapeHtml(conflict.current)}</div>
                         </div>
-                        <button class="btn btn-secondary btn-small" onclick="resolveConflict('${conflictData.contactId}', '${conflict.field}', false)">
+                        <button class="btn btn-secondary btn-small" onclick="resolveConflict('${safeId(conflictData.contactId)}', '${safeId(conflict.field)}', false)">
                           Keep This
                         </button>
                       </div>
@@ -5093,7 +5153,7 @@
                           <div style="font-size: 0.75rem; color: #1E40AF; margin-bottom: 0.125rem;">LINKEDIN DATA</div>
                           <div style="font-weight: 500;">${escapeHtml(conflict.new)}</div>
                         </div>
-                        <button class="btn btn-small" onclick="resolveConflict('${conflictData.contactId}', '${conflict.field}', true)">
+                        <button class="btn btn-small" onclick="resolveConflict('${safeId(conflictData.contactId)}', '${safeId(conflict.field)}', true)">
                           Use This
                         </button>
                       </div>
@@ -5156,7 +5216,7 @@
                 <button class="btn btn-secondary btn-block" onclick="document.getElementById('import-csv-file').click()">
                   Import CSV (Contacts)
                 </button>
-                <input type="file" id="import-csv-file" accept=".csv,.xlsx,.xls" style="display: none;" onchange="importCSV(event)">
+                <input type="file" id="import-csv-file" accept=".csv" style="display: none;" onchange="importCSV(event)">
               </div>
             </div>
 
@@ -5223,20 +5283,6 @@
             `}
             
             <input type="file" id="linkedin-file-input" accept=".csv" style="display: none;" onchange="handleLinkedInCSVUpload(event)">
-          </div>
-
-          <!-- Danger Zone -->
-          <div class="card" style="border: 1px solid var(--color-danger); border-left: 3px solid var(--color-danger);">
-            <h2 class="mb-md" style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); color: #991B1B; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600;">DANGER</span>
-              <span>Danger Zone</span>
-            </h2>
-            <p class="text-muted text-small mb-md">
-              This action cannot be undone. Make sure to export a backup first.
-            </p>
-            <button class="btn btn-danger btn-block" onclick="clearAllData()">
-              Clear All Data
-            </button>
           </div>
 
           <!-- App Info -->
@@ -5667,6 +5713,10 @@
     // This is the fast path if Firestore data is wiped and you need to recover
     // without hunting for a downloaded JSON file.
     function restoreFromLocalBackup() {
+      if (!_initialLoadComplete) {
+        showToast('Your data has not finished loading. Reload the page and try again.', 'error');
+        return;
+      }
       try {
         const raw = localStorage.getItem('crm-last-known-good');
         if (!raw) {
@@ -5691,9 +5741,6 @@
 
         AppState.contacts = backup.contacts;
         AppState.interactions = backup.interactions || [];
-        // Allow saveState() to proceed — this is an intentional restore
-        _initialLoadComplete = true;
-        _hadDataOnLoad = AppState.contacts.length > 0;
         saveState();
         renderCurrentView();
         showToast(`Restored ${AppState.contacts.length} contacts from local backup.`);
@@ -6169,7 +6216,6 @@
         importData,
         restoreFromLocalBackup,
         importCSV,
-        clearAllData,
         handleGoogleSignIn,
         handleSignOut,
         loadSampleData,

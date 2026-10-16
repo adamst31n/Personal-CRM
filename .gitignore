@@ -41,3 +41,6 @@ __pycache__/
 tmp/
 Data/
 Screenshots/
+
+# Deploy staging folder (rebuilt by deploy.sh)
+dist/
