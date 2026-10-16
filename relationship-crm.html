@@ -3951,21 +3951,9 @@
       }
     }
 
+    // Opens the interaction form prefilled from the original. Nothing is saved until the user submits.
     function duplicateInteraction(interactionId) {
-      const original = AppState.interactions.find(i => i.id === interactionId);
-      if (!original) return;
-
-      // Create a copy with today's date
-      const duplicate = addInteraction({
-        contactId: original.contactId,
-        taggedContacts: original.taggedContacts ? [...original.taggedContacts] : [],
-        date: getLocalDateString(), // Default to today
-        type: original.type,
-        notes: original.notes || ''
-      });
-
-      showToast('Interaction duplicated');
-      renderCurrentView();
+      openInteractionForm({ mode: 'duplicate', interactionId });
     }
 
     function deleteContactWithConfirm(contactId) {
@@ -4368,7 +4356,9 @@
 
     /* ===== INTERACTION MODAL ===== */
 
+    // mode is 'new' | 'edit' | 'duplicate' while the form is open, null when closed.
     let interactionModalState = {
+      mode: null,
       contactId: null,
       selectedType: null,
       selectedDate: getLocalDateString(),
@@ -4448,101 +4438,100 @@
       `;
     }
 
-    function openInteractionModal(contactId) {
+    // Single opener for the interaction form.
+    //   mode 'new':       blank form for contactId, date = today
+    //   mode 'edit':      prefilled from interactionId (including its date); saving updates it
+    //   mode 'duplicate': prefilled type, notes and tags from interactionId, date = today; saving creates a new entry
+    function openInteractionForm({ mode, contactId, interactionId }) {
+      let source = null;
+      if (mode === 'edit' || mode === 'duplicate') {
+        source = AppState.interactions.find(i => i.id === interactionId);
+        if (!source) return;
+        contactId = source.contactId;
+      }
+
       const contact = getContact(contactId);
-      if (!contact) return;
+      if (!contact) {
+        showToast('That contact no longer exists', 'error');
+        return;
+      }
+
+      // Tagged contacts: copy from the source, dropping anyone who has since been deleted
+      const taggedContacts = source
+        ? (source.taggedContacts || []).filter(id => getContact(id))
+        : [];
 
       interactionModalState = {
-        contactId: contactId,
-        selectedType: null,
-        selectedDate: getLocalDateString(),
-        taggedContacts: []
+        mode,
+        contactId,
+        editingId: mode === 'edit' ? interactionId : null,
+        selectedType: source ? source.type : null,
+        selectedDate: mode === 'edit' ? source.date : getLocalDateString(),
+        taggedContacts
       };
 
+      const titles = { new: 'Log Interaction', edit: 'Edit Interaction', duplicate: 'Duplicate Interaction' };
       const modal = document.getElementById('interaction-modal');
       const modalContent = document.getElementById('modal-content');
+      document.querySelector('#interaction-modal .modal-title').textContent = titles[mode];
 
       const otherContacts = AppState.contacts
         .filter(c => c.id !== contactId)
         .sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
 
-      const dateSection = `
+      // Quick-date buttons for new and duplicate; the edit form keeps just the date picker
+      const quickDates = mode === 'edit' ? '' : `
         <div class="quick-dates">
           <button type="button" class="quick-date-btn selected" onclick="selectQuickDate('today')">Today</button>
           <button type="button" class="quick-date-btn" onclick="selectQuickDate('yesterday')">Yesterday</button>
           <button type="button" class="quick-date-btn" onclick="selectQuickDate('2days')">2 days ago</button>
         </div>
+      `;
+      const dateSection = `
+        ${quickDates}
         <input type="date" id="interaction-date" class="form-input"
-          value="${interactionModalState.selectedDate}"
-          onchange="interactionModalState.selectedDate = this.value; updateQuickDateButtons();"
+          value="${escapeHtml(interactionModalState.selectedDate)}"
+          onchange="setModalDate(this.value)"
         />
       `;
 
       modalContent.innerHTML = renderInteractionModalContent({
         contact, contactId, dateSection,
-        selectedType: null,
-        existingNotes: '',
-        submitLabel: 'Log Interaction',
+        selectedType: interactionModalState.selectedType,
+        existingNotes: escapeHtml(source ? source.notes : ''),
+        submitLabel: mode === 'edit' ? 'Save Changes' : 'Log Interaction',
         otherContacts
       });
+
+      // Show any prefilled tags
+      updateTaggedContactsDisplay();
 
       modal.classList.add('active');
     }
 
+    // Thin wrappers so existing onclick handlers keep working
+    function openInteractionModal(contactId) {
+      openInteractionForm({ mode: 'new', contactId });
+    }
+
     function openEditInteractionModal(interactionId) {
-      const interaction = AppState.interactions.find(i => i.id === interactionId);
-      if (!interaction) return;
+      openInteractionForm({ mode: 'edit', interactionId });
+    }
 
-      const contact = getContact(interaction.contactId);
-      if (!contact) return;
-
-      interactionModalState = {
-        contactId: interaction.contactId,
-        selectedType: interaction.type,
-        selectedDate: interaction.date,
-        editingId: interactionId,
-        taggedContacts: interaction.taggedContacts ? [...interaction.taggedContacts] : []
-      };
-
-      const modal = document.getElementById('interaction-modal');
-      const modalContent = document.getElementById('modal-content');
-      const modalTitle = document.querySelector('.modal-title');
-      modalTitle.textContent = 'Edit Interaction';
-
-      const otherContacts = AppState.contacts
-        .filter(c => c.id !== interaction.contactId)
-        .sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
-
-      const dateSection = `
-        <input type="date" id="interaction-date" class="form-input"
-          value="${escapeHtml(interaction.date)}"
-          onchange="interactionModalState.selectedDate = this.value;"
-        />
-      `;
-
-      modalContent.innerHTML = renderInteractionModalContent({
-        contact, contactId: interaction.contactId, dateSection,
-        selectedType: interaction.type,
-        existingNotes: escapeHtml(interaction.notes || ''),
-        submitLabel: 'Save Changes',
-        otherContacts
-      });
-
-      // Display existing tagged contacts
-      updateTaggedContactsDisplay();
-
-      modal.classList.add('active');
+    // Called by the date input's onchange (inline handlers cannot see module-scoped variables)
+    function setModalDate(value) {
+      interactionModalState.selectedDate = value;
+      updateQuickDateButtons();
     }
 
     function closeInteractionModal() {
       const modal = document.getElementById('interaction-modal');
       modal.classList.remove('active');
 
-      // Reset modal title
-      const modalTitle = document.querySelector('.modal-title');
-      modalTitle.textContent = 'Log Interaction';
+      // Reset modal title and mode (runs for every way of closing: Cancel, overlay click, Escape, after submit)
+      document.querySelector('#interaction-modal .modal-title').textContent = 'Log Interaction';
 
-      interactionModalState = { contactId: null, selectedType: null, selectedDate: getLocalDateString(), taggedContacts: [] };
+      interactionModalState = { mode: null, contactId: null, selectedType: null, selectedDate: getLocalDateString(), taggedContacts: [] };
     }
 
     function selectQuickDate(option) {
@@ -4628,6 +4617,9 @@
     }
 
     function handleInteractionSubmit() {
+      const mode = interactionModalState.mode;
+      if (mode !== 'new' && mode !== 'edit' && mode !== 'duplicate') return;
+
       if (!interactionModalState.selectedType) {
         showToast('Please select an interaction type', 'error');
         return;
@@ -4638,7 +4630,7 @@
       const selectedDate = dateInput ? dateInput.value : interactionModalState.selectedDate;
       const notes = document.getElementById('interaction-notes')?.value || '';
 
-      if (interactionModalState.editingId) {
+      if (mode === 'edit') {
         // Edit existing interaction
         updateInteraction(interactionModalState.editingId, {
           date: selectedDate,
@@ -4648,7 +4640,7 @@
         });
         showToast('Interaction updated');
       } else {
-        // Add new interaction
+        // 'new' and 'duplicate' both create a new interaction
         addInteraction({
           contactId: interactionModalState.contactId,
           taggedContacts: interactionModalState.taggedContacts || [],
@@ -6240,6 +6232,7 @@
         openEditInteractionModal,
         deleteInteractionWithConfirm,
         duplicateInteraction,
+        setModalDate,
         enrichAllContacts,
         downloadCSVTemplate,
         exportCSV,
