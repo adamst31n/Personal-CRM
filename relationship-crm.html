@@ -3193,16 +3193,7 @@
                     <div class="activity-feed-grid">
                       ${upcomingInteractions.slice(0, 6).map((interaction, idx) => {
                         const contact = getContact(interaction.contactId);
-                        const participants = [getFullName(contact)];
-                        if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
-                          interaction.taggedContacts.forEach(taggedId => {
-                            const taggedContact = getContact(taggedId);
-                            if (taggedContact) participants.push(getFullName(taggedContact));
-                          });
-                        }
-                        const participantText = participants.length > 2
-                          ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
-                          : participants.map(n => escapeHtml(n)).join(' & ');
+                        const participantText = getParticipantText(interaction);
                         return `
                           <div class="activity-feed-row upcoming${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                             <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem; color: var(--color-primary);">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
@@ -3220,16 +3211,7 @@
                     <div class="activity-feed-grid">
                       ${recentInteractions.slice(0, 14).map((interaction, idx) => {
                         const contact = getContact(interaction.contactId);
-                        const participants = [getFullName(contact)];
-                        if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
-                          interaction.taggedContacts.forEach(taggedId => {
-                            const taggedContact = getContact(taggedId);
-                            if (taggedContact) participants.push(getFullName(taggedContact));
-                          });
-                        }
-                        const participantText = participants.length > 2
-                          ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
-                          : participants.map(n => escapeHtml(n)).join(' & ');
+                        const participantText = getParticipantText(interaction);
                         return `
                           <div class="activity-feed-row${idx % 2 === 1 ? ' activity-feed-row-alt' : ''}"${interaction.notes ? ` data-notes="${escapeHtml(interaction.notes)}" data-meta="${escapeHtml(interaction.type)} · ${formatRelativeDate(interaction.date)}"` : ''} onclick="navigateTo('contact', {id: '${safeId(contact.id)}'})">
                             <span class="activity-feed-row-text"><span style="font-weight: 700; font-size: 0.8125rem;">${escapeHtml(interaction.type)}</span><span style="font-weight: 400; font-size: 0.8125rem; color: var(--color-text-secondary);"> with ${participantText}</span><span class="activity-ts-long" style="font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDate(interaction.date)}</span><span class="activity-ts-short" style="display:none; font-size: 0.75rem; color: var(--color-text-secondary); opacity: 0.65;"> &middot; ${formatRelativeDateShort(interaction.date)}</span></span>
@@ -3358,6 +3340,47 @@
     // Escape HTML but preserve newlines as <br> tags for multi-line notes display
     function escapeHtmlPreserveNewlines(text) {
       return escapeHtml(text).replace(/\n/g, '<br>');
+    }
+
+    // Participant list for an interaction ("A & B" or "A, B +N"), names escaped.
+    // The primary contact is looked up by interaction.contactId and must exist.
+    function getParticipantText(interaction) {
+      const participants = [getFullName(getContact(interaction.contactId))];
+      if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
+        interaction.taggedContacts.forEach(taggedId => {
+          const taggedContact = getContact(taggedId);
+          if (taggedContact) participants.push(getFullName(taggedContact));
+        });
+      }
+      return participants.length > 2
+        ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
+        : participants.map(n => escapeHtml(n)).join(' & ');
+    }
+
+    // Activity page filter. In memory only: survives re-renders and navigation, resets on reload.
+    let activityFilterState = { types: [] }; // Empty array means all types
+
+    function activityMatchesFilter(interaction) {
+      const types = activityFilterState.types;
+      if (types.length === 0) return true;
+      if (types.includes(interaction.type)) return true;
+      // Legacy 'Social' interactions count as LinkedIn
+      return interaction.type === 'Social' && types.includes('LinkedIn');
+    }
+
+    function toggleActivityType(type) {
+      const idx = activityFilterState.types.indexOf(type);
+      if (idx === -1) {
+        activityFilterState.types.push(type);
+      } else {
+        activityFilterState.types.splice(idx, 1);
+      }
+      renderActivity();
+    }
+
+    function clearActivityFilters() {
+      activityFilterState.types = [];
+      renderActivity();
     }
 
     // Store filter state for contacts page
@@ -3633,9 +3656,13 @@
         .filter(item => item.contact) // Filter out interactions for deleted contacts
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+      // Apply the type filter before grouping so day headers and counts reflect filtered items
+      const filteredInteractions = allInteractions.filter(activityMatchesFilter);
+      const filterActive = activityFilterState.types.length > 0;
+
       // Group interactions by date
       const groupedByDate = {};
-      allInteractions.forEach(interaction => {
+      filteredInteractions.forEach(interaction => {
         const dateKey = interaction.date;
         if (!groupedByDate[dateKey]) {
           groupedByDate[dateKey] = [];
@@ -3656,6 +3683,29 @@
           </div>
 
           <div class="content-container">
+          ${allInteractions.length > 0 ? `
+            <div class="filter-chips">
+              ${INTERACTION_TYPES.map(({ type }) => `
+                <button
+                  type="button"
+                  class="filter-chip ${activityFilterState.types.includes(type) ? 'selected' : ''}"
+                  onclick="toggleActivityType('${escapeHtml(type)}')"
+                >${escapeHtml(type)}</button>
+              `).join('')}
+            </div>
+            ${filterActive ? `
+              <div class="text-muted text-small" style="margin-bottom: 1rem;">
+                Showing ${filteredInteractions.length} of ${allInteractions.length} interactions
+                &middot; <a href="#" onclick="clearActivityFilters(); return false;">Clear filters</a>
+              </div>
+            ` : ''}
+          ` : ''}
+          ${filterActive && filteredInteractions.length === 0 ? `
+            <div class="empty-state">
+              <h2>No interactions match these filters</h2>
+              <button class="btn mt-md" onclick="clearActivityFilters()">Clear filters</button>
+            </div>
+          ` : ''}
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             ${dates.map(date => {
               const interactions = groupedByDate[date];
@@ -3686,17 +3736,7 @@
                       const isFuture = isFutureDate(interaction.date);
                       const borderStyle = isFuture ? 'border-left: 3px solid var(--color-primary); background: linear-gradient(to right, rgba(37, 99, 235, 0.05), transparent);' : '';
                       const typeLabel = escapeHtml(isFuture ? `Planned: ${interaction.type}` : interaction.type);
-                      // Build participant list including tagged contacts
-                      const participants = [getFullName(interaction.contact)];
-                      if (interaction.taggedContacts && interaction.taggedContacts.length > 0) {
-                        interaction.taggedContacts.forEach(taggedId => {
-                          const taggedContact = getContact(taggedId);
-                          if (taggedContact) participants.push(getFullName(taggedContact));
-                        });
-                      }
-                      const participantText = participants.length > 2
-                        ? participants.slice(0, 2).map(n => escapeHtml(n)).join(', ') + ` +${participants.length - 2}`
-                        : participants.map(n => escapeHtml(n)).join(' & ');
+                      const participantText = getParticipantText(interaction);
                       return `
                         <div class="card card-clickable" style="padding: 1rem; margin: 0; ${borderStyle}" onclick="navigateTo('contact', {id: '${safeId(interaction.contact.id)}'})">
                           <div style="display: flex; gap: 0.75rem; align-items: start;">
@@ -6223,6 +6263,8 @@
         toggleContactMuted,
         toggleContactPriority,
         toggleFilterType,
+        toggleActivityType,
+        clearActivityFilters,
         selectInteractionType,
         selectQuickDate,
         removeTaggedContact,
