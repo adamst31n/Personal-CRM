@@ -1462,19 +1462,73 @@
       display: block;
       width: 100%;
       text-align: left;
-      padding: 0.75rem 1rem;
-      min-height: var(--tap-target-min);
+      padding: 0.375rem 0.75rem;
+      min-height: 44px;
       border: 1.5px solid var(--color-border);
       border-radius: var(--border-radius);
       background: var(--color-surface);
       color: var(--color-text-primary);
-      font-size: 1rem;
+      font-size: 0.9375rem;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .quick-log-result.highlight, .quick-log-result:hover {
+    /* .highlight is set only by arrow keys. Hover styling is limited to devices with a real pointer,
+       because touch screens leave :hover stuck on the last tapped row. */
+    .quick-log-result.highlight {
       border-color: var(--color-primary);
       background: rgba(37, 99, 235, 0.06);
+    }
+    @media (hover: hover) {
+      .quick-log-result:hover {
+        border-color: var(--color-primary);
+        background: rgba(37, 99, 235, 0.06);
+      }
+    }
+    /* Compact chips shared by the type row and the date row */
+    .quick-log-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      min-height: 36px;
+      padding: 0.375rem 0.625rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      font-family: inherit;
+      font-size: 0.875rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .quick-log-chip:hover, .quick-log-chip.selected {
+      border-color: var(--color-primary);
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--color-primary);
+    }
+    /* One row of type chips that scrolls sideways instead of wrapping */
+    .quick-log-type-row {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .quick-log-date-row { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+    /* "Pick date" chip: a transparent native date input sits on top so a tap opens the system picker */
+    .quick-log-pick-date { position: relative; overflow: hidden; }
+    .quick-log-pick-date input {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
     }
     .quick-log-header-mobile { display: none; }
     .quick-log-actions-desktop { display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap; margin-top: var(--spacing-md); }
@@ -5029,7 +5083,7 @@
         dateKey: 'today',      // one of QUICK_LOG_DATE_OPTIONS keys, or 'custom'
         customDate: '',
         results: [],
-        highlight: 0,
+        highlight: -1,         // -1 = none; set only by arrow keys
         loggedAny: false
       };
       const panel = document.getElementById('quick-log-panel');
@@ -5054,13 +5108,19 @@
 
         <div class="form-group">
           <label class="form-label">Type</label>
-          <div id="ql-types" class="interaction-types"></div>
+          <div id="ql-types" class="quick-log-type-row"></div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Date</label>
-          <div id="ql-dates" class="quick-dates" style="margin-bottom: 0.5rem;"></div>
-          <input type="date" id="ql-date" class="form-input" onchange="setQuickLogCustomDate(this.value)">
+          <div class="quick-log-date-row">
+            <span id="ql-date-chips" style="display: contents;"></span>
+            <label id="ql-date-pick" class="quick-log-chip quick-log-pick-date">
+              <span id="ql-date-pick-text">Pick date</span>
+              <input type="date" id="ql-date" aria-label="Pick a date" onchange="setQuickLogCustomDate(this.value)"
+                onclick="try { this.showPicker(); } catch (e) {}">
+            </label>
+          </div>
         </div>
 
         <div class="form-group">
@@ -5076,7 +5136,21 @@
       `;
       renderQuickLogParts();
       document.getElementById('quick-log').classList.add('active');
-      document.getElementById('ql-search').focus();
+      // Always open at the top. The type row starts at its left edge too (it can scroll sideways).
+      panel.scrollTop = 0;
+      document.getElementById('ql-types').scrollLeft = 0;
+      // Desktop focuses search right away. On phones the keyboard would hide the Recent list, so wait for a tap.
+      focusQuickLogSearch();
+    }
+
+    function isPhoneLayout() {
+      return window.matchMedia('(max-width: 767px)').matches;
+    }
+
+    function focusQuickLogSearch() {
+      if (isPhoneLayout()) return;
+      const input = document.getElementById('ql-search');
+      if (input) input.focus({ preventScroll: true });
     }
 
     function closeQuickLog() {
@@ -5104,20 +5178,32 @@
             style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.125rem; line-height: 1; padding: 0 0 0 0.5rem;">×</button></span>`;
       }).join('');
 
-      document.getElementById('ql-types').innerHTML = INTERACTION_TYPES.map(({ type, icon }) => `
-        <button type="button" class="interaction-type-btn ${type === st.type ? 'selected' : ''}"
-          onclick="setQuickLogType('${escapeHtml(type)}')" style="min-height: 64px; padding: 0.5rem;">
-          <span class="icon" style="font-size: 1.5rem;">${icon}</span>
-          <span class="label">${escapeHtml(type)}</span>
-        </button>
+      const typeRow = document.getElementById('ql-types');
+      const typeRowScroll = typeRow.scrollLeft;
+      typeRow.innerHTML = INTERACTION_TYPES.map(({ type, icon }) => `
+        <button type="button" class="quick-log-chip ${type === st.type ? 'selected' : ''}"
+          onclick="setQuickLogType('${escapeHtml(type)}')"><span aria-hidden="true">${icon}</span>${escapeHtml(type)}</button>
       `).join('');
+      typeRow.scrollLeft = typeRowScroll;
 
-      document.getElementById('ql-dates').innerHTML = QUICK_LOG_DATE_OPTIONS.map(opt => `
-        <button type="button" class="quick-date-btn ${st.dateKey === opt.key ? 'selected' : ''}"
-          style="min-height: 44px;" onclick="setQuickLogDate('${opt.key}')">${opt.label}</button>
+      document.getElementById('ql-date-chips').innerHTML = QUICK_LOG_DATE_OPTIONS.map(opt => `
+        <button type="button" class="quick-log-chip ${st.dateKey === opt.key ? 'selected' : ''}"
+          onclick="setQuickLogDate('${opt.key}')">${opt.label}</button>
       `).join('');
+      // The date input is never re-created (that would close the native picker); only updated.
+      const pickChip = document.getElementById('ql-date-pick');
+      pickChip.classList.toggle('selected', st.dateKey === 'custom');
       const dateInput = document.getElementById('ql-date');
-      if (dateInput) dateInput.value = st.dateKey === 'custom' ? st.customDate : '';
+      dateInput.value = st.dateKey === 'custom' ? st.customDate : '';
+      let pickText = 'Pick date';
+      if (st.dateKey === 'custom' && st.customDate) {
+        const [y, m, d] = st.customDate.split('-').map(Number);
+        const picked = new Date(y, m - 1, d);
+        const options = { month: 'short', day: 'numeric' };
+        if (y !== new Date().getFullYear()) options.year = 'numeric';
+        pickText = picked.toLocaleDateString('en-US', options);
+      }
+      document.getElementById('ql-date-pick-text').textContent = pickText;
 
       const canSave = st.people.length > 0;
       document.querySelectorAll('#quick-log .quick-log-save-btn').forEach(btn => { btn.disabled = !canSave; });
@@ -5167,7 +5253,7 @@
       const query = input.value;
       const showingRecents = !query.trim();
       st.results = showingRecents ? findQuickLogRecents() : findQuickLogMatches(query);
-      if (st.highlight >= st.results.length) st.highlight = 0;
+      if (st.highlight >= st.results.length) st.highlight = -1;
       if (showingRecents && st.results.length === 0) {
         box.innerHTML = '';
       } else if (st.results.length === 0) {
@@ -5183,7 +5269,7 @@
 
     function updateQuickLogResults() {
       if (!quickLogState) return;
-      quickLogState.highlight = 0;
+      quickLogState.highlight = -1;
       renderQuickLogResults();
     }
 
@@ -5192,15 +5278,17 @@
       if (!st) return;
       if (event.key === 'Enter') {
         event.preventDefault();
-        const pick = st.results[st.highlight];
+        // Enter adds the arrow-selected row; with none selected it adds the top match of a typed search.
+        const hasQuery = document.getElementById('ql-search').value.trim() !== '';
+        const pick = st.highlight >= 0 ? st.results[st.highlight] : (hasQuery ? st.results[0] : null);
         if (pick) addQuickLogPerson(pick.id);
       } else if (event.key === 'ArrowDown' && st.results.length > 0) {
         event.preventDefault();
-        st.highlight = (st.highlight + 1) % st.results.length;
+        st.highlight = st.highlight < 0 ? 0 : (st.highlight + 1) % st.results.length;
         renderQuickLogResults();
       } else if (event.key === 'ArrowUp' && st.results.length > 0) {
         event.preventDefault();
-        st.highlight = (st.highlight - 1 + st.results.length) % st.results.length;
+        st.highlight = st.highlight <= 0 ? st.results.length - 1 : st.highlight - 1;
         renderQuickLogResults();
       }
     }
@@ -5211,9 +5299,9 @@
       st.people.push(contactId);
       const input = document.getElementById('ql-search');
       input.value = '';
-      st.highlight = 0;
+      st.highlight = -1;
       renderQuickLogParts();
-      input.focus();
+      focusQuickLogSearch();
     }
 
     function removeQuickLogPerson(contactId) {
@@ -5221,7 +5309,7 @@
       if (!st) return;
       st.people = st.people.filter(id => id !== contactId);
       renderQuickLogParts();
-      document.getElementById('ql-search').focus();
+      focusQuickLogSearch();
     }
 
     function setQuickLogType(type) {
@@ -5239,7 +5327,12 @@
     // Picking a date in the input deselects the chips; clearing it goes back to Today.
     function setQuickLogCustomDate(value) {
       if (!quickLogState) return;
-      if (value) {
+      // A date that matches a preset selects that chip instead of showing a custom date
+      const preset = value && QUICK_LOG_DATE_OPTIONS.find(o => getDaysAgoString(o.daysAgo) === value);
+      if (preset) {
+        quickLogState.dateKey = preset.key;
+        quickLogState.customDate = '';
+      } else if (value) {
         quickLogState.dateKey = 'custom';
         quickLogState.customDate = value;
       } else {
@@ -5289,11 +5382,11 @@
       if (logAnother) {
         // Keep type and date; clear people, search and note.
         st.people = [];
-        st.highlight = 0;
+        st.highlight = -1;
         document.getElementById('ql-note').value = '';
         document.getElementById('ql-search').value = '';
         renderQuickLogParts();
-        document.getElementById('ql-search').focus();
+        focusQuickLogSearch();
       } else {
         closeQuickLog();
       }
