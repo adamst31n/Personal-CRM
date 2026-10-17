@@ -9,7 +9,6 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="CRM">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#2563EB">
 
   <style>
     /* ===== CSS RESET & BASE STYLES ===== */
@@ -1172,64 +1171,7 @@
       background: var(--color-primary-dark);
     }
 
-    /* Floating Action Button (FAB) */
-    .fab {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      width: 56px;
-      height: 56px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 2.25rem;
-      font-weight: 300;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45),
-                  0 2px 8px rgba(0, 0, 0, 0.15);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 50;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .fab:hover {
-      background: var(--color-primary-light);
-      transform: scale(1.1);
-      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.55),
-                  0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .fab:active {
-      transform: scale(0.95);
-    }
-
-    body.dark-mode .fab {
-      background: var(--color-primary);
-      box-shadow: 0 6px 20px rgba(96, 165, 250, 0.5),
-                  0 2px 8px rgba(0, 0, 0, 0.4);
-    }
-
-    body.dark-mode .fab:hover {
-      background: var(--color-primary-light);
-      box-shadow: 0 12px 32px rgba(96, 165, 250, 0.6),
-                  0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
     @media (max-width: 768px) {
-      .fab {
-        bottom: 1.5rem;
-        right: 1.5rem;
-        width: 52px;
-        height: 52px;
-      }
-      
       /* Stack Needs Attention columns on mobile */
       .needs-attention-grid {
         display: flex !important;
@@ -1461,6 +1403,121 @@
         padding: 1rem 0;
         margin-bottom: 1.5rem;
       }
+    }
+
+    /* Quick log: floating button and panel */
+    :root {
+      --quick-log-fab-height: 56px;
+      --quick-log-fab-margin: 1rem;
+    }
+    .quick-log-fab .quick-log-fab-plus { font-size: 1.75rem; font-weight: 300; line-height: 1; margin-top: -2px; }
+    .quick-log-fab {
+      position: fixed;
+      right: max(1rem, env(safe-area-inset-right));
+      bottom: calc(var(--quick-log-fab-margin) + env(safe-area-inset-bottom, 0px));
+      height: var(--quick-log-fab-height);
+      min-width: 56px;
+      border: none;
+      border-radius: calc(var(--quick-log-fab-height) / 2);
+      background: var(--color-primary);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1;
+      padding: 0 1.25rem 0 1rem;
+      gap: 0.375rem;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45), 0 2px 8px rgba(0, 0, 0, 0.15);
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Phone: floating pill, and room for the last items on a page to scroll clear of it */
+    @media (max-width: 767px) {
+      .quick-log-fab.visible { display: flex; }
+      body.quick-log-active #app {
+        padding-bottom: calc(var(--quick-log-fab-height) + var(--quick-log-fab-margin) * 2 + env(safe-area-inset-bottom, 0px));
+      }
+    }
+    /* Hide while any modal (including the quick log panel) is open */
+    body:has(.modal-overlay.active) .quick-log-fab { display: none !important; }
+
+    /* Desktop: "+ Log" lives in the header, just left of the profile menu */
+    .header-log-btn {
+      display: none;
+      min-height: 40px;
+      padding: 0 1rem;
+      font-size: 0.9375rem;
+      white-space: nowrap;
+      align-items: center;
+    }
+    @media (min-width: 768px) {
+      .header-log-btn.visible { display: inline-flex; }
+    }
+
+    .quick-log-people-results { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem; }
+    .quick-log-result {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      min-height: var(--tap-target-min);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--border-radius);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .quick-log-result.highlight, .quick-log-result:hover {
+      border-color: var(--color-primary);
+      background: rgba(37, 99, 235, 0.06);
+    }
+    .quick-log-header-mobile { display: none; }
+    .quick-log-actions-desktop { display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap; margin-top: var(--spacing-md); }
+    .quick-log-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .quick-log-link-btn {
+      background: none;
+      border: none;
+      color: var(--color-primary);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.5rem;
+      min-height: var(--tap-target-min);
+    }
+    .quick-log-link-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    @media (max-width: 767px) {
+      /* Full-screen panel on phones; fields start at the top so the keyboard never covers them */
+      #quick-log.modal-overlay { padding: 0; align-items: stretch; justify-content: stretch; }
+      #quick-log .modal {
+        max-width: none;
+        max-height: none;
+        height: 100%;
+        border-radius: 0;
+        padding: 0 1rem 1rem;
+        box-shadow: none;
+      }
+      .quick-log-header-mobile {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--color-surface);
+        padding: 0.5rem 0;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .quick-log-header-mobile .modal-title { font-size: 1.0625rem; }
+      #quick-log .quick-log-desktop-only { display: none; }
+      .quick-log-actions-desktop { margin-top: 0; }
+      .quick-log-actions-desktop .btn { width: 100%; }
     }
 
     /* Modal */
@@ -1985,6 +2042,9 @@
         Sign In
       </button>
 
+      <!-- Quick log (desktop only; phones use the floating pill) -->
+      <button type="button" id="header-log-btn" class="btn header-log-btn" onclick="openQuickLog()" title="Quick log (L)">+ Log</button>
+
       <!-- User Menu (shown when logged in) -->
       <div id="user-menu" class="user-menu-container" style="display: none;">
         <button class="user-menu-trigger" onclick="toggleUserMenu()">
@@ -2053,6 +2113,12 @@
 
   <!-- App container -->
   <div id="app"></div>
+
+  <!-- Quick log: floating button and panel (content is built when opened) -->
+  <button type="button" id="quick-log-fab" class="quick-log-fab" onclick="openQuickLog()" aria-label="Quick log an interaction" title="Quick log (L)"><span class="quick-log-fab-plus" aria-hidden="true">+</span><span>Log</span></button>
+  <div id="quick-log" class="modal-overlay" onclick="if(event.target === this) closeQuickLog()">
+    <div class="modal" id="quick-log-panel" role="dialog" aria-label="Quick log"></div>
+  </div>
 
   <!-- Toast notifications container -->
   <div id="toast-container"></div>
@@ -3021,6 +3087,7 @@
     let authResolved = false;
 
     function renderLoadingState(message = 'Loading…') {
+      setQuickLogFabVisible(false);
       const appEl = document.getElementById('app');
       if (!appEl) return;
       appEl.innerHTML = `
@@ -3030,6 +3097,7 @@
     }
 
     function renderLoadFailedState(error) {
+      setQuickLogFabVisible(false);
       const appEl = document.getElementById('app');
       if (!appEl) return;
       const detail = error
@@ -3080,7 +3148,19 @@
       }
     }
 
+    // Which view (and contact) was last drawn, so a real view change scrolls to the top
+    // while an in-place re-render of the same view (snapshot update, delete) keeps its scroll.
+    let lastRenderedViewKey = null;
+
     function renderCurrentView() {
+      setQuickLogFabVisible(!!currentUser && authResolved);
+
+      const viewKey = currentUser ? `${AppState.currentView}/${AppState.selectedContactId || ''}` : 'signed-out';
+      if (viewKey !== lastRenderedViewKey) {
+        lastRenderedViewKey = viewKey;
+        window.scrollTo(0, 0);
+      }
+
       // Until Firebase reports whether a saved session exists, show a neutral
       // loading state. The login screen is only for a confirmed signed-out user.
       if (!currentUser) {
@@ -3656,14 +3736,16 @@
           ` : ''}
 
           <!-- Search Bar -->
-          <div class="form-group">
+          <div class="form-group" style="display: flex; gap: 0.75rem; align-items: stretch;">
             <input
               type="search"
               class="form-input"
+              style="flex: 1; min-width: 0;"
               placeholder="Search contacts..."
               value="${escapeHtml(contactFilterState.searchQuery)}"
               oninput="renderContactList(this.value)"
             />
+            <button type="button" class="btn btn-secondary" style="white-space: nowrap;" onclick="navigateTo('add-contact')">+ Contact</button>
           </div>
 
           <!-- Filter Chips and Sort Dropdown -->
@@ -3764,11 +3846,6 @@
             </div>
           `}
           </div>
-          
-          <!-- Floating Action Button -->
-          <button class="fab" onclick="navigateTo('add-contact')" aria-label="Add contact" title="Add Contact">
-            <span style="display: block; transform: translateY(-1px);">+</span>
-          </button>
         </div>
       `;
     }
@@ -4917,6 +4994,327 @@
       closeInteractionModal();
       renderCurrentView();
     }
+
+    /* ===== QUICK LOG ===== */
+
+    const QUICK_LOG_MAX_RESULTS = 6;
+    const QUICK_LOG_DEFAULT_TYPE = 'Text';
+    // Date options: label and how many days back from today
+    const QUICK_LOG_DATE_OPTIONS = [
+      { key: 'today', label: 'Today', daysAgo: 0 },
+      { key: 'yesterday', label: 'Yesterday', daysAgo: 1 },
+      { key: 'twoDays', label: '2 days ago', daysAgo: 2 }
+    ];
+
+    // Lives in memory only. people[0] is the primary contact, the rest are tagged contacts.
+    let quickLogState = null;
+
+    function setQuickLogFabVisible(visible) {
+      const fab = document.getElementById('quick-log-fab');
+      if (fab) fab.classList.toggle('visible', !!visible);
+      const headerBtn = document.getElementById('header-log-btn');
+      if (headerBtn) headerBtn.classList.toggle('visible', !!visible);
+      document.body.classList.toggle('quick-log-active', !!visible);
+    }
+
+    function isAnyModalOpen() {
+      return !!document.querySelector('.modal-overlay.active');
+    }
+
+    function openQuickLog() {
+      if (!currentUser || !authResolved || isAnyModalOpen()) return;
+      quickLogState = {
+        people: [],
+        type: QUICK_LOG_DEFAULT_TYPE,
+        dateKey: 'today',      // one of QUICK_LOG_DATE_OPTIONS keys, or 'custom'
+        customDate: '',
+        results: [],
+        highlight: 0,
+        loggedAny: false
+      };
+      const panel = document.getElementById('quick-log-panel');
+      panel.innerHTML = `
+        <div class="quick-log-header-mobile">
+          <button type="button" class="quick-log-link-btn" style="color: var(--color-text-secondary);" onclick="closeQuickLog()">Cancel</button>
+          <span class="modal-title">Quick log</span>
+          <button type="button" class="quick-log-link-btn quick-log-save-btn" onclick="saveQuickLog(false)" disabled>Save</button>
+        </div>
+        <div class="modal-header quick-log-desktop-only">
+          <h2 class="modal-title">Quick log</h2>
+          <button type="button" class="modal-close" onclick="closeQuickLog()" aria-label="Close">×</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ql-search">People</label>
+          <div id="ql-chips" class="filter-chips" style="margin-bottom: 0.5rem;"></div>
+          <input type="text" id="ql-search" class="form-input" placeholder="Search by name..." autocomplete="off" autocapitalize="off"
+            oninput="updateQuickLogResults()" onkeydown="handleQuickLogSearchKey(event)">
+          <div id="ql-results" class="quick-log-people-results"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <div id="ql-types" class="interaction-types"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <div id="ql-dates" class="quick-dates" style="margin-bottom: 0.5rem;"></div>
+          <input type="date" id="ql-date" class="form-input" onchange="setQuickLogCustomDate(this.value)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ql-note">Note (optional)</label>
+          <textarea id="ql-note" class="form-textarea" rows="2" style="min-height: 4.5rem;" placeholder="Add a note..."></textarea>
+        </div>
+
+        <div class="quick-log-actions-desktop">
+          <button type="button" class="btn btn-secondary quick-log-save-btn" onclick="saveQuickLog(true)" disabled>Save &amp; log another</button>
+          <button type="button" class="btn btn-secondary quick-log-desktop-only" onclick="closeQuickLog()">Cancel</button>
+          <button type="button" class="btn quick-log-save-btn quick-log-desktop-only" onclick="saveQuickLog(false)" disabled>Save</button>
+        </div>
+      `;
+      renderQuickLogParts();
+      document.getElementById('quick-log').classList.add('active');
+      document.getElementById('ql-search').focus();
+    }
+
+    function closeQuickLog() {
+      const overlay = document.getElementById('quick-log');
+      if (!overlay || !overlay.classList.contains('active')) return;
+      overlay.classList.remove('active');
+      document.getElementById('quick-log-panel').innerHTML = '';
+      const loggedAny = quickLogState && quickLogState.loggedAny;
+      quickLogState = null;
+      // Refresh the view underneath, but never re-render a form the user may be typing in.
+      const editingNow = AppState.currentView === 'edit-contact' || AppState.currentView === 'add-contact';
+      if (loggedAny && !editingNow) renderCurrentView();
+    }
+
+    // Redraws everything except the search box and note, which keep their text and focus.
+    function renderQuickLogParts() {
+      const st = quickLogState;
+      if (!st) return;
+
+      document.getElementById('ql-chips').innerHTML = st.people.map(id => {
+        const c = getContact(id);
+        if (!c) return '';
+        return `<span class="filter-chip selected" style="cursor: default;">${escapeHtml(getFullName(c))}
+          <button type="button" onclick="removeQuickLogPerson('${safeId(id)}')" aria-label="Remove ${escapeHtml(getFullName(c))}"
+            style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.125rem; line-height: 1; padding: 0 0 0 0.5rem;">×</button></span>`;
+      }).join('');
+
+      document.getElementById('ql-types').innerHTML = INTERACTION_TYPES.map(({ type, icon }) => `
+        <button type="button" class="interaction-type-btn ${type === st.type ? 'selected' : ''}"
+          onclick="setQuickLogType('${escapeHtml(type)}')" style="min-height: 64px; padding: 0.5rem;">
+          <span class="icon" style="font-size: 1.5rem;">${icon}</span>
+          <span class="label">${escapeHtml(type)}</span>
+        </button>
+      `).join('');
+
+      document.getElementById('ql-dates').innerHTML = QUICK_LOG_DATE_OPTIONS.map(opt => `
+        <button type="button" class="quick-date-btn ${st.dateKey === opt.key ? 'selected' : ''}"
+          style="min-height: 44px;" onclick="setQuickLogDate('${opt.key}')">${opt.label}</button>
+      `).join('');
+      const dateInput = document.getElementById('ql-date');
+      if (dateInput) dateInput.value = st.dateKey === 'custom' ? st.customDate : '';
+
+      const canSave = st.people.length > 0;
+      document.querySelectorAll('#quick-log .quick-log-save-btn').forEach(btn => { btn.disabled = !canSave; });
+
+      renderQuickLogResults();
+    }
+
+    // Matches first name, last name or full name (case-insensitive "contains").
+    // Starts-with matches rank first, then the most recent interaction.
+    function findQuickLogMatches(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      const chosen = quickLogState ? quickLogState.people : [];
+      const matches = [];
+      AppState.contacts.forEach(c => {
+        if (chosen.includes(c.id)) return;
+        const first = (c.firstName || '').toLowerCase();
+        const last = (c.lastName || '').toLowerCase();
+        const full = getFullName(c).toLowerCase();
+        if (!(first.includes(q) || last.includes(q) || full.includes(q))) return;
+        const startsWith = first.startsWith(q) || last.startsWith(q) || full.startsWith(q);
+        matches.push({ contact: c, startsWith });
+      });
+      matches.sort((a, b) => {
+        if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+        const recent = (b.contact.lastContactedAt || 0) - (a.contact.lastContactedAt || 0);
+        if (recent !== 0) return recent;
+        return getFullName(a.contact).localeCompare(getFullName(b.contact));
+      });
+      return matches.slice(0, QUICK_LOG_MAX_RESULTS).map(m => m.contact);
+    }
+
+    // Shown when the search box is empty: most recently contacted, not already chosen, not muted.
+    function findQuickLogRecents() {
+      const chosen = quickLogState ? quickLogState.people : [];
+      return AppState.contacts
+        .filter(c => c.lastContactedAt && !c.muted && !chosen.includes(c.id))
+        .sort((a, b) => b.lastContactedAt - a.lastContactedAt)
+        .slice(0, QUICK_LOG_MAX_RESULTS);
+    }
+
+    function renderQuickLogResults() {
+      const st = quickLogState;
+      const box = document.getElementById('ql-results');
+      const input = document.getElementById('ql-search');
+      if (!st || !box || !input) return;
+      const query = input.value;
+      const showingRecents = !query.trim();
+      st.results = showingRecents ? findQuickLogRecents() : findQuickLogMatches(query);
+      if (st.highlight >= st.results.length) st.highlight = 0;
+      if (showingRecents && st.results.length === 0) {
+        box.innerHTML = '';
+      } else if (st.results.length === 0) {
+        box.innerHTML = '<p class="text-muted text-small" style="margin: 0.25rem 0;">No match</p>';
+      } else {
+        box.innerHTML = (showingRecents ? '<div class="text-muted text-small" style="font-weight: 600; margin-top: 0.25rem;">Recent</div>' : '') +
+          st.results.map((c, idx) => `
+          <button type="button" class="quick-log-result ${idx === st.highlight ? 'highlight' : ''}"
+            onclick="addQuickLogPerson('${safeId(c.id)}')">${escapeHtml(getFullName(c))}</button>
+        `).join('');
+      }
+    }
+
+    function updateQuickLogResults() {
+      if (!quickLogState) return;
+      quickLogState.highlight = 0;
+      renderQuickLogResults();
+    }
+
+    function handleQuickLogSearchKey(event) {
+      const st = quickLogState;
+      if (!st) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const pick = st.results[st.highlight];
+        if (pick) addQuickLogPerson(pick.id);
+      } else if (event.key === 'ArrowDown' && st.results.length > 0) {
+        event.preventDefault();
+        st.highlight = (st.highlight + 1) % st.results.length;
+        renderQuickLogResults();
+      } else if (event.key === 'ArrowUp' && st.results.length > 0) {
+        event.preventDefault();
+        st.highlight = (st.highlight - 1 + st.results.length) % st.results.length;
+        renderQuickLogResults();
+      }
+    }
+
+    function addQuickLogPerson(contactId) {
+      const st = quickLogState;
+      if (!st || !getContact(contactId) || st.people.includes(contactId)) return;
+      st.people.push(contactId);
+      const input = document.getElementById('ql-search');
+      input.value = '';
+      st.highlight = 0;
+      renderQuickLogParts();
+      input.focus();
+    }
+
+    function removeQuickLogPerson(contactId) {
+      const st = quickLogState;
+      if (!st) return;
+      st.people = st.people.filter(id => id !== contactId);
+      renderQuickLogParts();
+      document.getElementById('ql-search').focus();
+    }
+
+    function setQuickLogType(type) {
+      if (!quickLogState || !INTERACTION_TYPES.some(t => t.type === type)) return;
+      quickLogState.type = type;
+      renderQuickLogParts();
+    }
+
+    function setQuickLogDate(key) {
+      if (!quickLogState || !QUICK_LOG_DATE_OPTIONS.some(o => o.key === key)) return;
+      quickLogState.dateKey = key;
+      renderQuickLogParts();
+    }
+
+    // Picking a date in the input deselects the chips; clearing it goes back to Today.
+    function setQuickLogCustomDate(value) {
+      if (!quickLogState) return;
+      if (value) {
+        quickLogState.dateKey = 'custom';
+        quickLogState.customDate = value;
+      } else {
+        quickLogState.dateKey = 'today';
+        quickLogState.customDate = '';
+      }
+      renderQuickLogParts();
+    }
+
+    function getQuickLogDateString() {
+      const st = quickLogState;
+      if (st.dateKey === 'custom') return st.customDate;
+      const opt = QUICK_LOG_DATE_OPTIONS.find(o => o.key === st.dateKey) || QUICK_LOG_DATE_OPTIONS[0];
+      return getDaysAgoString(opt.daysAgo);
+    }
+
+    function saveQuickLog(logAnother) {
+      const st = quickLogState;
+      if (!st || st.people.length === 0) return;
+
+      // Do not add an entry that cannot be saved (same condition as saveState's first guard).
+      // The panel stays open so nothing typed is lost.
+      if (!_initialLoadComplete) {
+        console.warn('Quick log blocked: initial Firestore load has not completed successfully.');
+        showToast('Changes are NOT being saved. Reload the page.', 'error');
+        return;
+      }
+
+      const date = getQuickLogDateString();
+      if (!date) {
+        showToast('Please pick a date', 'error');
+        return;
+      }
+
+      const [primaryId, ...taggedIds] = st.people;
+      addInteraction({
+        contactId: primaryId,
+        taggedContacts: taggedIds,
+        date,
+        type: st.type,
+        notes: document.getElementById('ql-note').value
+      });
+      st.loggedAny = true;
+      const primaryName = getFullName(getContact(primaryId));
+      showToast(`Logged: ${st.type} with ${primaryName}${taggedIds.length > 0 ? ` +${taggedIds.length}` : ''}`);
+
+      if (logAnother) {
+        // Keep type and date; clear people, search and note.
+        st.people = [];
+        st.highlight = 0;
+        document.getElementById('ql-note').value = '';
+        document.getElementById('ql-search').value = '';
+        renderQuickLogParts();
+        document.getElementById('ql-search').focus();
+      } else {
+        closeQuickLog();
+      }
+    }
+
+    // Keyboard: "L" opens the panel (not while typing or with a modal open); Escape closes it.
+    window.addEventListener('keydown', (e) => {
+      const overlay = document.getElementById('quick-log');
+      if (e.key === 'Escape') {
+        if (overlay && overlay.classList.contains('active')) closeQuickLog();
+        return;
+      }
+      if ((e.key !== 'l' && e.key !== 'L') || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+      if (isAnyModalOpen()) return;
+      const menu = document.getElementById('slide-menu');
+      if (menu && menu.classList.contains('active')) return;
+      e.preventDefault();
+      openQuickLog();
+    });
 
     /* ===== DATA EXPORT/IMPORT ===== */
 
@@ -6473,6 +6871,16 @@
         clearActivityFilters,
         toggleHistoryType,
         retryLoadAfterSignIn,
+        openQuickLog,
+        closeQuickLog,
+        addQuickLogPerson,
+        removeQuickLogPerson,
+        updateQuickLogResults,
+        handleQuickLogSearchKey,
+        setQuickLogType,
+        setQuickLogDate,
+        setQuickLogCustomDate,
+        saveQuickLog,
         clearHistoryFilters,
         selectInteractionType,
         selectQuickDate,
