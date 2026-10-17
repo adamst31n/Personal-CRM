@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Personal Relationship CRM - Stay connected with people who matter">
   <title>Relationship CRM</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="CRM">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#2563EB">
 
   <style>
     /* ===== CSS RESET & BASE STYLES ===== */
@@ -609,6 +614,13 @@
       outline: none;
       border-color: var(--color-primary);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* iOS Safari zooms the page when a field under 16px gets focus. Keep fields at 16px on small screens. */
+    @media (max-width: 767px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
     }
 
     /* Icon styles */
@@ -2301,7 +2313,30 @@
 
     /* ===== FIREBASE AUTHENTICATION ===== */
 
+    // True when launched from the iPhone/Android home screen (no browser chrome).
+    // Popups don't work there, so sign-in must use a full-page redirect.
+    function isStandaloneMode() {
+      return window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+
+    async function startRedirectSignIn() {
+      try {
+        const provider = new GoogleAuthProvider();
+        sessionStorage.setItem('crm-redirect-pending', '1');
+        await signInWithRedirect(auth, provider);
+      } catch (redirectError) {
+        sessionStorage.removeItem('crm-redirect-pending');
+        console.error('Redirect sign-in error:', redirectError);
+        showToast('Sign-in failed. Please try again.', 'error');
+      }
+    }
+
     async function handleGoogleSignIn() {
+      if (isStandaloneMode()) {
+        await startRedirectSignIn();
+        return;
+      }
       try {
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
@@ -2312,15 +2347,7 @@
         // cancelled. All other errors surface normally.
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
           console.warn('Popup blocked — falling back to redirect sign-in:', error.code);
-          try {
-            const provider = new GoogleAuthProvider();
-            sessionStorage.setItem('crm-redirect-pending', '1');
-            await signInWithRedirect(auth, provider);
-          } catch (redirectError) {
-            sessionStorage.removeItem('crm-redirect-pending');
-            console.error('Redirect sign-in error:', redirectError);
-            showToast('Sign-in failed. Please try again.', 'error');
-          }
+          await startRedirectSignIn();
         } else {
           console.error('Sign-in error:', error);
           showToast('Sign-in failed. Please try again.', 'error');
@@ -2442,8 +2469,9 @@
         }
       } catch (error) {
         // _initialLoadComplete stays false — saveState() will be blocked below
-        console.error('Error loading data from Firestore:', error);
-        showToast('Error loading data. Your data has NOT been modified.', 'error');
+        console.error('Error loading data from Firestore:', error, error && error.stack);
+        const errorCode = (error && (error.code || error.name)) || 'unknown';
+        showToast(`Error loading data (${errorCode}). Your data has NOT been modified.`, 'error');
       }
     }
 
@@ -2932,10 +2960,78 @@
       updateNavigation();
     }
 
-    function renderCurrentView() {
-      // Show login screen if not authenticated
+    // True once onAuthStateChanged has fired at least once (signed in or not).
+    let authResolved = false;
+
+    function renderLoadingState(message = 'Loading…') {
+      const appEl = document.getElementById('app');
+      if (!appEl) return;
+      appEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - var(--nav-height));color:var(--color-text-secondary);font-size:0.9375rem;">
+          ${escapeHtml(message)}
+        </div>`;
+    }
+
+    function renderLoadFailedState(error) {
+      const appEl = document.getElementById('app');
+      if (!appEl) return;
+      const detail = error
+        ? `Step: ${error.crmStep || 'unknown'} · ${error.name || 'Error'}: ${error.message || String(error)}`
+        : '';
+      appEl.innerHTML = `
+        <div class="empty-state" style="min-height:calc(100vh - var(--nav-height));display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <h2>Couldn't load your data</h2>
+          <p class="text-muted">You are still signed in. Your data has not been changed.</p>
+          <button class="btn mt-md" onclick="retryLoadAfterSignIn()">Retry</button>
+          ${detail ? `<p style="margin-top:1rem;font-size:0.75rem;color:var(--color-text-secondary);opacity:0.8;">${escapeHtml(detail)}</p>` : ''}
+        </div>`;
+    }
+
+    // Everything that happens once a signed-in user is known.
+    // If a step throws, the error is tagged with the step name (error.crmStep) and rethrown.
+    async function startSignedInSession() {
+      let step = 'load';
+      try {
+        await loadState();
+        step = 'sync';
+        setupRealtimeSync();
+        step = 'recalculate';
+        recalculateAllLastContactedDates();
+        step = 'render';
+        AppState.currentView = 'dashboard';
+        updateUserMenuDisplay();
+        renderCurrentView();
+        updateNavigation();
+      } catch (error) {
+        console.error(`❌ startSignedInSession failed at step "${step}":`, error, error && error.stack);
+        if (error && typeof error === 'object') error.crmStep = step;
+        throw error;
+      }
+    }
+
+    async function retryLoadAfterSignIn() {
       if (!currentUser) {
-        renderLoginScreen();
+        renderCurrentView();
+        return;
+      }
+      renderLoadingState();
+      try {
+        await startSignedInSession();
+      } catch (error) {
+        console.error('❌ Retry failed:', error, error && error.stack);
+        renderLoadFailedState(error);
+      }
+    }
+
+    function renderCurrentView() {
+      // Until Firebase reports whether a saved session exists, show a neutral
+      // loading state. The login screen is only for a confirmed signed-out user.
+      if (!currentUser) {
+        if (!authResolved) {
+          renderLoadingState();
+        } else {
+          renderLoginScreen();
+        }
         return;
       }
 
@@ -6078,32 +6174,18 @@
         return;
       }
 
-      // If returning from a signInWithRedirect, show a neutral loading state
-      // instead of the login screen so there is no signed-out flash while
-      // Firebase resolves the auth result. The flag is set in handleGoogleSignIn
-      // before the redirect and cleared in onAuthStateChanged on return.
-      const redirectPending = sessionStorage.getItem('crm-redirect-pending');
-      if (redirectPending) {
-        const appEl = document.getElementById('app');
-        if (appEl) {
-          appEl.innerHTML = `
-            <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - var(--nav-height));color:var(--color-text-secondary);font-size:0.9375rem;">
-              Signing in…
-            </div>`;
-        }
-      } else {
-        try {
-          renderLoginScreen();
-        } catch (error) {
-          console.error('❌ Error rendering login screen:', error);
-        }
-      }
+      // Show a neutral loading state until onAuthStateChanged reports whether a
+      // saved session exists, so a signed-in user never sees the login screen flash.
+      // The redirect flag is set in startRedirectSignIn before the redirect and
+      // cleared in onAuthStateChanged on return.
+      renderLoadingState(sessionStorage.getItem('crm-redirect-pending') ? 'Signing in…' : 'Loading…');
 
       // Check whether we just returned from a signInWithRedirect flow.
       // This is a no-op when no redirect is pending (result.user === null).
       // onAuthStateChanged — not this call — drives loadState() and setupRealtimeSync().
       getRedirectResult(auth).catch((error) => {
         console.error('getRedirectResult error:', error);
+        showToast('Sign-in failed. Please try again.', 'error');
       });
 
       // Set up Firebase authentication listener
@@ -6113,16 +6195,10 @@
           // whether sign-in succeeded, failed, or the user was already signed in.
           sessionStorage.removeItem('crm-redirect-pending');
           currentUser = user;
+          authResolved = true;
 
           if (user) {
-            await loadState();
-            setupRealtimeSync();
-            recalculateAllLastContactedDates();
-
-            AppState.currentView = 'dashboard';
-            updateUserMenuDisplay();
-            renderCurrentView();
-            updateNavigation();
+            await startSignedInSession();
           } else {
             AppState.currentView = 'dashboard';
             updateUserMenuDisplay();
@@ -6131,9 +6207,13 @@
         } catch (error) {
           console.error('❌ CRITICAL ERROR in auth state handler:', error);
           console.error('Error stack:', error.stack);
-          // Try to render login screen as fallback
           try {
-            renderLoginScreen();
+            if (currentUser) {
+              // Signed in but loading failed: do not pretend the user is signed out.
+              renderLoadFailedState(error);
+            } else {
+              renderLoginScreen();
+            }
           } catch (fallbackError) {
             console.error('❌ Even fallback failed:', fallbackError);
           }
@@ -6335,6 +6415,7 @@
         toggleActivityType,
         clearActivityFilters,
         toggleHistoryType,
+        retryLoadAfterSignIn,
         clearHistoryFilters,
         selectInteractionType,
         selectQuickDate,
