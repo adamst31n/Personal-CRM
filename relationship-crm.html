@@ -2112,9 +2112,10 @@
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    // experimentalAutoDetectLongPolling lets the SDK fall back from WebChannel
-    // to long-polling when the transport is unreliable (common in Safari).
-    const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+    // experimentalForceLongPolling skips the WebChannel transport, which is unreliable
+    // on iPhone Safari, and always uses long-polling. Do not combine it with
+    // experimentalAutoDetectLongPolling (the SDK rejects both together).
+    const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 
     // Authentication state
     let currentUser = null;
@@ -2428,13 +2429,52 @@
       enrichmentConflicts: 'crm_enrichment_conflicts'
     };
 
+    // Local restore point, written after every successful load that has real data.
+    function writeLastKnownGoodBackup() {
+      try {
+        localStorage.setItem('crm-last-known-good', JSON.stringify({
+          savedAt: new Date().toISOString(),
+          contacts: AppState.contacts,
+          interactions: AppState.interactions,
+          contactCount: AppState.contacts.length,
+          interactionCount: AppState.interactions.length
+        }));
+      } catch (e) {
+        console.warn('Could not write localStorage backup:', e);
+      }
+    }
+
+    // Test hook: only ever true on localhost with ?simulateLoadFail=1.
+    const SIMULATE_LOAD_FAIL = location.hostname === 'localhost' &&
+      new URLSearchParams(location.search).get('simulateLoadFail') === '1';
+
+    // Delays before the 2nd and 3rd attempt when the first read fails with 'unavailable'.
+    const LOAD_RETRY_DELAYS_MS = [1000, 2000];
+
+    async function getUserDocWithRetry(userDocRef) {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          if (SIMULATE_LOAD_FAIL) {
+            const simulated = new Error('Simulated load failure (localhost test hook)');
+            simulated.code = 'unavailable';
+            throw simulated;
+          }
+          return await getDoc(userDocRef);
+        } catch (error) {
+          if (error.code !== 'unavailable' || attempt >= LOAD_RETRY_DELAYS_MS.length) throw error;
+          console.warn(`loadState: Firestore unavailable, retrying in ${LOAD_RETRY_DELAYS_MS[attempt]}ms`);
+          await new Promise(resolve => setTimeout(resolve, LOAD_RETRY_DELAYS_MS[attempt]));
+        }
+      }
+    }
+
     // Load data from Firestore
     async function loadState() {
       if (!currentUser) return;
 
       try {
         const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
+        const userDoc = await getUserDocWithRetry(userDocRef);
 
         if (userDoc.exists()) {
           const data = userDoc.data();
@@ -2454,19 +2494,7 @@
 
         // Persist a localStorage snapshot on every successful load with real data.
         // This is the restore point if Firestore is ever overwritten again.
-        if (_hadDataOnLoad) {
-          try {
-            localStorage.setItem('crm-last-known-good', JSON.stringify({
-              savedAt: new Date().toISOString(),
-              contacts: AppState.contacts,
-              interactions: AppState.interactions,
-              contactCount: AppState.contacts.length,
-              interactionCount: AppState.interactions.length
-            }));
-          } catch (e) {
-            console.warn('Could not write localStorage backup:', e);
-          }
-        }
+        if (_hadDataOnLoad) writeLastKnownGoodBackup();
       } catch (error) {
         // _initialLoadComplete stays false — saveState() will be blocked below
         console.error('Error loading data from Firestore:', error, error && error.stack);
@@ -2484,6 +2512,16 @@
     let _initialLoadComplete = false;
     let _hadDataOnLoad = false;
 
+    // Tells the user their edits are not being saved, at most once per interval.
+    const SAVE_BLOCKED_TOAST_INTERVAL_MS = 30000;
+    let _lastSaveBlockedToastAt = 0;
+    function notifySaveBlocked() {
+      const now = Date.now();
+      if (now - _lastSaveBlockedToastAt < SAVE_BLOCKED_TOAST_INTERVAL_MS) return;
+      _lastSaveBlockedToastAt = now;
+      showToast('Changes are NOT being saved. Reload the page.', 'error');
+    }
+
     async function saveState() {
       if (!currentUser) return;
 
@@ -2492,6 +2530,7 @@
       // is still empty — writing it would overwrite real remote data with nothing.
       if (!_initialLoadComplete) {
         console.warn('saveState() blocked: initial Firestore load has not completed successfully.');
+        notifySaveBlocked();
         return;
       }
 
@@ -2500,7 +2539,7 @@
       // accidentally before saving.
       if (AppState.contacts.length === 0 && AppState.interactions.length === 0 && _hadDataOnLoad) {
         console.error('saveState() BLOCKED: refusing to overwrite non-empty remote data with empty local state. Reload to resync.');
-        showToast('Safety check blocked an empty save. Please reload the page.', 'error');
+        notifySaveBlocked();
         return;
       }
 
@@ -2558,6 +2597,10 @@
         // to prevent overwriting local state with stale data
         if (_saveInFlight || _saveTimeout) return;
 
+        // True only when the initial load failed and this snapshot came from the server
+        // (not the local cache).
+        const promoteToInitialLoad = !_initialLoadComplete && snapshot.metadata.fromCache === false;
+
         if (snapshot.exists()) {
           const data = snapshot.data();
           const incomingContacts = data.contacts || [];
@@ -2583,6 +2626,15 @@
           AppState.linkedinData = data.linkedinData || [];
           AppState.enrichmentConflicts = data.enrichmentConflicts || [];
 
+          // If the initial getDoc failed, a snapshot confirmed by the server is just as
+          // good a read of the real document, so it counts as the initial load.
+          if (promoteToInitialLoad) {
+            _hadDataOnLoad = incomingContacts.length > 0 || incomingInteractions.length > 0;
+            _initialLoadComplete = true;
+            if (_hadDataOnLoad) writeLastKnownGoodBackup();
+            showToast('Connected. Changes will save.', 'success');
+          }
+
           // Don't re-render while the user is actively editing a form — the
           // snapshot would overwrite the DOM and erase any in-progress input.
           // AppState is already updated above so the save will have current data.
@@ -2590,6 +2642,11 @@
           if (!editingNow) {
             renderCurrentView();
           }
+        } else if (promoteToInitialLoad) {
+          // Server confirms the document does not exist: same as a new user in loadState().
+          _hadDataOnLoad = false;
+          _initialLoadComplete = true;
+          showToast('Connected. Changes will save.', 'success');
         }
       }, (error) => {
         console.error('Snapshot error:', error);
