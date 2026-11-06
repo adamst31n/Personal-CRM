@@ -2,7 +2,7 @@
 
 I built this because I kept losing touch with people I cared about. The problem wasn't that I didn't want to stay connected — it was that I had no system. This is a web app that helps you track your relationships and reminds you when it's been too long since you last reached out to someone.
 
-The whole thing is a single HTML file using Firebase for the backend. No framework, no build process, just vanilla JavaScript.
+The web app is a single HTML file using Firebase for the backend. No framework or build process, just vanilla JavaScript. I also built a separate local AI-agent prototype for interacting with the CRM through natural language.
 
 > **[Open the app →](https://personal-crm-31132.firebaseapp.com)** — sign in with Google, your data syncs to the cloud
 >
@@ -30,6 +30,12 @@ You add contacts (friends, family, colleagues) and log interactions whenever you
 - 🟠 Orange — overdue
 - 🔴 Red — very overdue
 - ⚪ Gray — not yet contacted
+
+## Local AI agent (prototype)
+
+I built a separate Python agent using the Claude Agent SDK and an MCP server to work with my CRM data without filling out forms. It can look up contacts, surface people I might want to reconnect with, and turn free-form notes into proposed contact or interaction records. The interesting design choice was keeping reads automatic while requiring explicit confirmation before any write to Firestore.
+
+The agent runs locally and is **not** part of the hosted web app or browser demo. The implementation is in [`crm_agent.py`](crm_agent.py) and [`mcp_server/`](mcp_server/).
 
 ## Quick Start
 
